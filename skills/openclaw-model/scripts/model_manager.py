@@ -476,7 +476,7 @@ class ModelManager:
         # 2. 更新实例配置（如果指定）
         if instance_name:
             print(f"📝 更新实例配置: {instance_name}")
-            instance_path = self.pm.get_instance_dir(instance_name)
+            instance_path = self.pm.get_instance_path(instance_name)
             config_file = instance_path / '.openclaw' / 'openclaw.json'
             
             if not config_file.exists():
