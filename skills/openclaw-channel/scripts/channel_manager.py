@@ -30,7 +30,7 @@ class ChannelManager:
         self.encryptor = CredentialEncryptor()
         self.channels_file = self.pm.get_channels_config()
     
-    def add(self, name: str, platform: str, config: Dict[str, str]) -> bool:
+    def add(self, name: str, platform: str, config: Dict[str, str], instance_name: str = None) -> bool:
         """
         添加渠道
         
@@ -38,6 +38,7 @@ class ChannelManager:
             name: 渠道名称
             platform: 平台类型（feishu/qq/wecom/dingtalk）
             config: 配置信息（如 app_id, app_secret）
+            instance_name: 实例名称（可选，如果提供则直接写入实例配置）
         
         Returns:
             是否成功
@@ -73,10 +74,56 @@ class ChannelManager:
             "config": secure_config
         }
         
-        # 保存
+        # 保存到全局 channels.jsonl
         self.channels_file.parent.mkdir(parents=True, exist_ok=True)
         with open(self.channels_file, 'a') as f:
             f.write(json.dumps(channel, ensure_ascii=False) + '\n')
+            
+        print(f"✅ 渠道已添加到全局记录")
+        
+        # 如果提供了实例名称，则直接写入实例的 openclaw.json
+        if instance_name:
+            instance_dir = self.workspace_dir / 'lobsters' / instance_name
+            if not instance_dir.exists():
+                print(f"⚠️ 警告: 实例目录不存在 {instance_dir}，跳过写入实例配置")
+            else:
+                config_file = instance_dir / '.openclaw' / 'openclaw.json'
+                if config_file.exists():
+                    try:
+                        with open(config_file, 'r', encoding='utf-8') as f:
+                            instance_config = json.load(f)
+                            
+                        # 确保 channels 节点存在
+                        if 'channels' not in instance_config:
+                            instance_config['channels'] = {}
+                            
+                        # 写入飞书配置
+                        if platform == 'feishu':
+                            instance_config['channels']['feishu'] = {
+                                'enabled': True,
+                                'appId': config.get('app_id', ''),
+                                'appSecret': config.get('app_secret', ''),
+                                'connectionMode': 'websocket',
+                                'dmPolicy': 'pairing',
+                                'groupPolicy': 'open'
+                            }
+                            
+                        # 写入其他平台配置(预留)
+                        elif platform == 'qq':
+                            instance_config['channels']['qq'] = {
+                                'enabled': True,
+                                'appId': config.get('app_id', ''),
+                                'appSecret': config.get('app_secret', '')
+                            }
+                            
+                        with open(config_file, 'w', encoding='utf-8') as f:
+                            json.dump(instance_config, f, indent=2, ensure_ascii=False)
+                            
+                        print(f"✅ 渠道配置已成功写入实例 {instance_name} 的 openclaw.json")
+                    except Exception as e:
+                        print(f"❌ 写入实例配置失败: {e}")
+                else:
+                    print(f"⚠️ 警告: 实例配置文件不存在 {config_file}")
         
         print(f"✅ 渠道已添加")
         print(f"\n📋 渠道信息:")
@@ -368,6 +415,7 @@ def main():
     add_parser.add_argument('platform', help='平台类型（feishu/qq/wecom/dingtalk）')
     add_parser.add_argument('--app-id', required=True, help='应用 ID')
     add_parser.add_argument('--app-secret', required=True, help='应用密钥')
+    add_parser.add_argument('--instance', help='实例名称（可选，如果提供则直接写入实例配置）')
     
     # list 命令
     list_parser = subparsers.add_parser('list', help='列出所有渠道')
@@ -398,7 +446,7 @@ def main():
                 'app_id': args.app_id,
                 'app_secret': args.app_secret
             }
-            manager.add(args.name, args.platform, config)
+            manager.add(args.name, args.platform, config, getattr(args, 'instance', None))
         elif args.command == 'list':
             manager.list()
         elif args.command == 'remove':
