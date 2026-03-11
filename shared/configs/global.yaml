@@ -1,0 +1,219 @@
+# OpenClaw 管理技能包 - 全局配置模板
+# 复制此文件为 global.yaml 并根据实际情况修改
+
+# ============================================
+# 全局设置
+# ============================================
+global:
+  # 项目名称
+  project_name: "openclaw-fleet"
+  
+  # 工作空间根目录（可配置，不要写死）
+  # 支持相对路径（相对于项目根目录）或绝对路径
+  # 示例：
+  #   - "./workspace"              # 相对路径，存储在项目目录下（默认）
+  #   - "/data/openclaw/workspace" # 绝对路径，存储在指定位置
+  #   - "~/openclaw-data"          # 用户目录
+  # 
+  # 约定：
+  #   - 实际使用：workspace（默认）
+  #   - 测试时：通过环境变量 OPENCLAW_ASSISTANT_WORKSPACE=./test-workspace 覆盖
+  workspace_root: "./workspace"
+  
+  # 日志级别: debug, info, warn, error
+  log_level: "info"
+  
+  # 默认时区
+  timezone: "Asia/Shanghai"
+
+# ============================================
+# OpenClaw 默认配置
+# ============================================
+openclaw:
+  # OpenClaw 版本（留空则使用最新版）
+  version: "latest"
+  
+  # 安装方式: npm, yarn, pnpm, binary, source
+  install_method: "npm"
+  
+  # OpenClaw 安装路径
+  install_path: "/usr/local/lib/openclaw"
+  
+  # 默认端口范围（避免冲突）
+  port_range:
+    start: 3000
+    end: 3100
+
+# ============================================
+# 实例默认配置
+# ============================================
+instance:
+  # 实例命名前缀
+  name_prefix: "openclaw"
+  
+  # 默认部署模式: host, docker
+  default_deploy_mode: "host"
+  
+  # 自动启动
+  auto_start: true
+  
+  # 自动重启
+  auto_restart: true
+  
+  # 健康检查间隔（秒）
+  health_check_interval: 60
+
+# ============================================
+# 部署配置
+# ============================================
+deployment:
+  # 主机模式配置
+  host:
+    # 是否使用 Systemd
+    use_systemd: true
+    
+    # Systemd 服务路径
+    systemd_path: "/etc/systemd/system"
+    
+    # 运行用户
+    run_as_user: "openclaw"
+  
+  # 容器模式配置
+  docker:
+    # Docker 镜像仓库
+    registry: "docker.io"
+    
+    # 镜像名称前缀
+    image_prefix: "openclaw"
+    
+    # 是否使用 Docker Compose
+    use_compose: true
+  
+  # Kubernetes 配置
+  kubernetes:
+    # 命名空间
+    namespace: "openclaw"
+    
+    # 副本数
+    replicas: 1
+
+# ============================================
+# 插件配置
+# ============================================
+plugins:
+  # 插件源（官方插件仓库）
+  registry: "https://registry.openclaw.com/plugins"
+  
+  # 自动更新插件
+  auto_update: false
+  
+  # 支持的平台
+  supported_platforms:
+    - feishu
+    - qq
+    - wecom
+    - dingtalk
+
+# ============================================
+# 渠道配置
+# ============================================
+channels:
+  # 凭证加密方式: aes256, fernet
+  encryption_method: "fernet"
+  
+  # 连接超时（秒）
+  connection_timeout: 30
+  
+  # 重试次数
+  max_retries: 3
+
+# ============================================
+# 模型配置
+# ============================================
+models:
+  # 默认 AI 模型
+  default_model: "gpt-4"
+  
+  # 模型配置
+  defaults:
+    temperature: 0.7
+    max_tokens: 2000
+    top_p: 1.0
+  
+  # 支持的模型提供商
+  providers:
+    - openai
+    - anthropic
+    - ollama
+    - custom
+
+# ============================================
+# 智能体配置
+# ============================================
+agents:
+  # 默认智能体名称
+  default_agent_name: "main"
+  
+  # 智能体命名格式: {instance}-agent-{name}
+  naming_format: "{instance}-agent-{name}"
+
+# ============================================
+# 监控和日志
+# ============================================
+monitoring:
+  # 是否启用监控
+  enabled: true
+  
+  # 日志保留天数
+  log_retention_days: 30
+  
+  # 日志轮转大小（MB）
+  log_rotation_size: 100
+  
+  # 是否收集性能指标
+  collect_metrics: true
+
+# ============================================
+# 备份配置
+# ============================================
+backup:
+  # 是否启用自动备份
+  enabled: false
+  
+  # 备份路径
+  backup_path: "./backups"
+  
+  # 备份间隔（小时）
+  interval: 24
+  
+  # 保留的备份数量
+  retention_count: 7
+
+# ============================================
+# 安全配置
+# ============================================
+security:
+  # 是否加密敏感配置
+  encrypt_secrets: true
+  
+  # 密钥文件路径（不要提交到Git）
+  keyfile_path: "./workspace/.keyfile"
+  
+  # 文件权限（Unix）
+  config_file_mode: "0600"
+  
+  # 工作空间权限
+  workspace_mode: "0700"
+
+# ============================================
+# 开发配置
+# ============================================
+development:
+  # 开发模式
+  debug: false
+  
+  # 详细日志
+  verbose: false
+  
+  # 是否使用测试数据
+  use_test_data: false

@@ -1,0 +1,12 @@
+# OpenClaw Manager 技能包依赖
+
+# 命令行工具
+click>=8.1.7
+rich>=13.7.0
+
+# 进程管理
+psutil>=5.9.6
+
+# 配置管理（使用共享工具）
+pyyaml>=6.0.1
+python-dotenv>=1.0.0

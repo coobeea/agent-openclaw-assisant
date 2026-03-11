@@ -1,0 +1,44 @@
+# ============================================
+# OpenClaw 管理技能包 Python 依赖
+# ============================================
+#
+# Python 版本要求:
+#   - 最低版本: Python 3.10
+#   - 推荐版本: Python 3.12+
+#   - 测试版本: Python 3.12.8, 3.14.2
+#
+# 使用方法:
+#   1. 使用 env-checker 创建虚拟环境:
+#      bash skills/env-checker/scripts/setup.sh
+#   
+#   2. 安装依赖:
+#      .venv/bin/pip install -r requirements.txt
+#
+# ============================================
+
+# 配置文件解析
+pyyaml>=6.0.1
+python-dotenv>=1.0.0
+
+# 命令行工具
+click>=8.1.7
+rich>=13.7.0
+
+# 加密和安全
+cryptography>=41.0.7
+
+# HTTP 客户端（用于API调用）
+requests>=2.31.0
+httpx>=0.25.2
+
+# 进程管理
+psutil>=5.9.6
+
+# 日志管理
+colorlog>=6.8.0
+
+# 开发和测试
+pytest>=7.4.3
+pytest-cov>=4.1.0
+black>=23.12.0
+flake8>=6.1.0

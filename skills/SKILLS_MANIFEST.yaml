@@ -1,0 +1,156 @@
+# OpenClaw 技能包清单
+# 此文件列出仓库中的所有技能包及其元信息
+
+version: "1.0.0"
+repository: "agent-openclaw-assisant"
+author: "lifeng"
+created: "2026-03-10"
+updated: "2026-03-10"
+
+skills:
+  - name: openclaw-manager
+    path: skills/openclaw-manager
+    priority: P0
+    status: planned
+    dependencies: []
+    description: "OpenClaw 安装、实例管理、工作空间管理"
+    capabilities:
+      - install_openclaw
+      - create_instance
+      - manage_instance_lifecycle
+      - workspace_management
+      - log_viewing
+    triggers:
+      - "安装 OpenClaw"
+      - "创建实例"
+      - "启动实例"
+      - "查看状态"
+      - "查看日志"
+    
+  - name: openclaw-deploy
+    path: skills/openclaw-deploy
+    priority: P1
+    status: planned
+    dependencies:
+      - openclaw-manager
+    description: "主机和容器部署管理"
+    capabilities:
+      - host_deployment
+      - docker_deployment
+      - kubernetes_deployment
+      - health_check
+      - service_management
+    triggers:
+      - "部署到主机"
+      - "部署到 Docker"
+      - "Systemd 服务"
+      - "健康检查"
+    
+  - name: openclaw-plugin
+    path: skills/openclaw-plugin
+    priority: P1
+    status: planned
+    dependencies:
+      - openclaw-manager
+    description: "插件安装和管理"
+    capabilities:
+      - install_plugin
+      - uninstall_plugin
+      - update_plugin
+      - list_plugins
+      - plugin_status
+    supported_platforms:
+      - feishu
+      - qq
+      - wecom
+      - dingtalk
+    triggers:
+      - "安装插件"
+      - "飞书插件"
+      - "QQ插件"
+      - "企业微信插件"
+      - "钉钉插件"
+    
+  - name: openclaw-channel
+    path: skills/openclaw-channel
+    priority: P1
+    status: planned
+    dependencies:
+      - openclaw-plugin
+    description: "渠道配置和凭证管理"
+    capabilities:
+      - add_channel
+      - update_channel
+      - remove_channel
+      - list_channels
+      - test_connection
+      - encrypt_credentials
+    triggers:
+      - "配置渠道"
+      - "添加渠道"
+      - "测试连接"
+      - "管理凭证"
+    
+  - name: openclaw-model
+    path: skills/openclaw-model
+    priority: P2
+    status: planned
+    dependencies:
+      - openclaw-manager
+    description: "AI 模型配置和管理"
+    capabilities:
+      - add_model
+      - update_model
+      - remove_model
+      - list_models
+      - test_model
+      - set_default_model
+    supported_providers:
+      - openai
+      - anthropic
+      - ollama
+      - custom
+    triggers:
+      - "添加模型"
+      - "配置模型"
+      - "GPT-4"
+      - "Claude"
+      - "API Key"
+    
+  - name: openclaw-agent
+    path: skills/openclaw-agent
+    priority: P2
+    status: planned
+    dependencies:
+      - openclaw-model
+      - openclaw-channel
+    description: "智能体创建和路由配置"
+    capabilities:
+      - create_agent
+      - update_agent
+      - delete_agent
+      - list_agents
+      - bind_model
+      - bind_channel
+      - configure_routing
+    triggers:
+      - "创建智能体"
+      - "创建 agent"
+      - "配置智能体"
+      - "智能体路由"
+
+# 技能包状态说明
+status_definitions:
+  planned: "已规划，未开始开发"
+  in_progress: "开发中"
+  alpha: "Alpha 版本，核心功能可用"
+  beta: "Beta 版本，功能完整待测试"
+  stable: "稳定版本"
+  deprecated: "已弃用"
+
+# 优先级说明
+priority_definitions:
+  P0: "必需 - 核心功能，必须实现"
+  P1: "推荐 - 重要功能，优先实现"
+  P2: "可选 - 高级功能，后续实现"
+  P3: "增强 - 锦上添花，按需实现"

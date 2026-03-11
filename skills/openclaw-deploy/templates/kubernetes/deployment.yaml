@@ -1,0 +1,57 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: openclaw-INSTANCE_ID
+  namespace: openclaw
+  labels:
+    app: openclaw
+    instance: INSTANCE_ID
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: openclaw
+      instance: INSTANCE_ID
+  template:
+    metadata:
+      labels:
+        app: openclaw
+        instance: INSTANCE_ID
+    spec:
+      containers:
+      - name: openclaw
+        image: openclaw:latest
+        ports:
+        - containerPort: 3000
+          name: http
+        env:
+        - name: OPENCLAW_LOG_LEVEL
+          value: "info"
+        - name: NODE_ENV
+          value: "production"
+        volumeMounts:
+        - name: workspace
+          mountPath: /workspace
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 3000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 3000
+          initialDelaySeconds: 10
+          periodSeconds: 5
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "500m"
+          limits:
+            memory: "2Gi"
+            cpu: "2000m"
+      volumes:
+      - name: workspace
+        persistentVolumeClaim:
+          claimName: openclaw-INSTANCE_ID-workspace

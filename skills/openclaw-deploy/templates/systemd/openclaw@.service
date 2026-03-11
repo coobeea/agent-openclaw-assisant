@@ -1,0 +1,35 @@
+[Unit]
+Description=OpenClaw Instance %i
+After=network.target
+Documentation=https://github.com/openclaw/openclaw
+
+[Service]
+Type=simple
+User=openclaw
+Group=openclaw
+WorkingDirectory=/path/to/workspace/%i
+ExecStart=/usr/local/bin/openclaw start --workspace /path/to/workspace/%i
+ExecStop=/usr/local/bin/openclaw stop --workspace /path/to/workspace/%i
+Restart=always
+RestartSec=10
+StartLimitBurst=5
+StartLimitInterval=300
+
+# 环境变量
+Environment="NODE_ENV=production"
+Environment="OPENCLAW_LOG_LEVEL=info"
+
+# 安全配置
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/path/to/workspace/%i
+
+# 日志
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=openclaw-%i
+
+[Install]
+WantedBy=multi-user.target

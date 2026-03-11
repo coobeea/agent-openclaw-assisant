@@ -1,0 +1,5 @@
+# OpenClaw Agent 技能包依赖
+
+click>=8.1.7
+rich>=13.7.0
+pyyaml>=6.0.1

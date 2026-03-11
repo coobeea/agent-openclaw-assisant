@@ -1,0 +1,243 @@
+# ============================================
+# OpenClaw 工作空间和运行数据
+# ============================================
+
+# 所有实例的工作空间（包含运行数据、配置、日志等）
+workspace/
+
+# 测试工作空间（包含测试数据和运行时文件）
+test-workspace/
+!test-workspace/.gitkeep
+
+# ============================================
+# 敏感信息和凭证
+# ============================================
+
+# 环境变量文件
+.env
+.env.*
+*.env
+**/.env
+**/*.env
+.envrc
+
+# 配置文件中的敏感信息
+**/config/secrets.yaml
+**/config/credentials.json
+**/config/.env
+secrets/
+credentials/
+
+# API 密钥和 Token
+**/api-keys.json
+**/tokens.json
+**/*-secret.txt
+**/*-token.txt
+
+# ============================================
+# 日志文件
+# ============================================
+
+# 所有日志文件
+*.log
+logs/
+**/logs/
+**/*.log
+
+# OpenClaw 特定日志
+openclaw.log
+error.log
+access.log
+debug.log
+
+# ============================================
+# 临时文件和缓存
+# ============================================
+
+# 通用临时文件
+*.tmp
+*.temp
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# 缓存目录
+cache/
+.cache/
+**/cache/
+**/.cache/
+
+# ============================================
+# 依赖和构建产物
+# ============================================
+
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.npm
+.yarn/
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg
+*.egg-info/
+dist/
+build/
+
+# 虚拟环境（使用 env-checker 创建的 .venv）
+.venv/
+venv/
+ENV/
+env/
+
+# 测试和覆盖率
+.pytest_cache/
+.coverage
+htmlcov/
+
+# ============================================
+# IDE 和编辑器
+# ============================================
+
+# VS Code / Cursor
+.vscode/
+*.code-workspace
+
+# JetBrains IDEs
+.idea/
+*.iml
+*.iws
+*.ipr
+
+# Vim
+*.swp
+*.swo
+[._]*.s[a-v][a-z]
+[._]*.sw[a-p]
+[._]s[a-rt-v][a-z]
+[._]ss[a-gi-z]
+[._]sw[a-p]
+
+# ============================================
+# OpenClaw 特定数据
+# ============================================
+
+# 对话数据
+**/data/conversations/
+**/data/memory/
+**/data/chat-history/
+
+# 插件数据
+**/plugins/*/data/
+**/plugins/*/cache/
+**/plugins/*/.env
+
+# 数据库文件
+*.db
+*.sqlite
+*.sqlite3
+
+# ============================================
+# 备份和归档
+# ============================================
+
+# 备份文件
+*.bak
+*.backup
+*_backup
+backup/
+backups/
+
+# 压缩文件（排除模板）
+*.zip
+*.tar
+*.tar.gz
+*.tgz
+*.rar
+!templates/**/*.zip
+!templates/**/*.tar.gz
+
+# ============================================
+# 操作系统
+# ============================================
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# Linux
+*~
+.directory
+.Trash-*
+
+# ============================================
+# 测试和开发
+# ============================================
+
+# 测试产物
+test-results/
+coverage/
+.nyc_output/
+
+# 开发用的临时实例
+workspace/openclaw-tmp-*
+workspace/openclaw-debug-*
+
+# ============================================
+# 安全
+# ============================================
+
+# SSL/TLS 证书和密钥
+*.pem
+*.key
+*.crt
+*.cer
+*.p12
+*.pfx
+
+# SSH 密钥
+id_rsa
+id_rsa.pub
+*.ppk
+
+# ============================================
+# 数据文件（可能包含敏感信息）
+# ============================================
+
+# 所有 JSONL 数据文件（除了示例）
+**/*.jsonl
+!**/example.jsonl
+!**/template.jsonl
+!**/*.example.jsonl
+
+# JSON 配置文件（除了模板）
+**/config.json
+**/credentials.json
+**/secrets.json
+!**/config.example.json
+!**/config.template.json
+
+# workspace 数据目录的所有数据文件
+workspace/data/*.json
+workspace/data/*.jsonl
+workspace/data/*.yaml
+workspace/data/*.yml
