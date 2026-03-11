@@ -254,26 +254,36 @@ class Orchestrator:
         }
         
         for inst in instances:
-            status = self.instance_mgr.status(inst['name'])
+            name = inst['name']
+            pid = inst.get('process_pid')
             
-            if status and status['running']:
+            # 检查进程是否存活
+            is_running = False
+            if pid:
+                try:
+                    import psutil
+                    is_running = psutil.pid_exists(pid)
+                except:
+                    is_running = self.instance_mgr._is_process_alive(pid)
+            
+            if is_running:
                 report['running'] += 1
                 health = '✅ 健康'
-            elif status and not status['running']:
+            elif pid and not is_running:
+                report['stopped'] += 1
+                health = '⏸️  已停止（进程已退出）'
+            else:
                 report['stopped'] += 1
                 health = '⏸️  已停止'
-            else:
-                report['error'] += 1
-                health = '❌ 异常'
             
             report['details'].append({
-                'name': inst['name'],
+                'name': name,
                 'status': health,
-                'port': status.get('port') if status else None,
-                'pid': status.get('pid') if status else None
+                'port': inst.get('gateway_port'),
+                'pid': pid
             })
             
-            print(f"  {inst['name']:30} {health}")
+            print(f"  {name:30} {health}")
         
         # 统计
         print(f"\n{'─' * 80}")
