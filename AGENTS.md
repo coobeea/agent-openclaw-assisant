@@ -73,7 +73,7 @@ skills\env-checker\scripts\setup.bat
 
 ### 🚨 不要假设用户已有实例！
 
-**问题**: 文档中的示例命令（如 `openclaw-feishu-2774`）仅作**示例**，不代表用户机器上有该实例。
+**问题**: 文档中的示例命令（如 `openclaw-feishu-demo`）仅作**示例**，不代表用户机器上有该实例。
 
 **正确做法**:
 1. 🔍 **先检查实例是否存在**:
@@ -94,7 +94,7 @@ skills\env-checker\scripts\setup.bat
 ```
 错误方式:
 用户: "帮我配置飞书"
-AI: "好的，我为 openclaw-feishu-2774 配置飞书..."  ❌ (假设存在)
+AI: "好的，我为 openclaw-feishu-demo 配置飞书..."  ❌ (假设存在)
 
 正确方式:
 用户: "帮我配置飞书"
@@ -343,7 +343,7 @@ agent-openclaw-assisant/
 │
 ├── workspace/                   # 实例工作空间
 │   └── lobsters/               # 所有龙虾实例
-│       └── <实例名>/           # 如: openclaw-feishu-2774
+│       └── <实例名>/           # 如: openclaw-feishu-demo
 │
 └── shared/                      # 共享资源
 ```
@@ -413,7 +413,7 @@ agent-openclaw-assisant/
 **格式**: `openclaw-{platform}-{sequence}`
 
 **示例**:
-- ✅ `openclaw-feishu-2774` (飞书实例)
+- ✅ `openclaw-feishu-demo` (飞书实例)
 - ✅ `openclaw-qq-001` (QQ实例)
 - ✅ `openclaw-wecom-100` (企业微信实例)
 - ❌ `my-bot` (不符合规范)
@@ -508,12 +508,12 @@ AI 的正确流程：
 1. 🔍 **先检查现状**:
    执行: <.venv/bin/python> skills/openclaw-manager/scripts/instance_manager.py list
    结果: 
-   - openclaw-feishu-2774 (已有)
+   - openclaw-feishu-demo (已有)
    - openclaw-qq-001 (已有)
 
 2. ✅ **使用实际存在的实例**:
    "您有 2 个实例，请问要为哪个实例配置飞书？"
-   或："我看到您有实例 openclaw-feishu-2774，要为它配置吗？"
+   或："我看到您有实例 openclaw-feishu-demo，要为它配置吗？"
 
 3. 📝 **询问缺失信息**:
    - "请提供飞书 App ID"

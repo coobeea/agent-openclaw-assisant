@@ -132,24 +132,24 @@ Logs: openclaw logs --follow
 ### 步骤 1: 停止龙虾
 
 ```bash
-python3 skills/openclaw-manager/scripts/instance_manager.py stop openclaw-feishu-2774
+python3 skills/openclaw-manager/scripts/instance_manager.py stop openclaw-feishu-demo
 ```
 
 ### 步骤 2: 修改配置文件
 
-编辑 `workspace/lobsters/openclaw-feishu-2774/.openclaw/openclaw.json`，添加完整的 `models` 配置部分（见上面的完整配置）。
+编辑 `workspace/lobsters/openclaw-feishu-demo/.openclaw/openclaw.json`，添加完整的 `models` 配置部分（见上面的完整配置）。
 
 ### 步骤 3: 重启龙虾
 
 ```bash
-python3 skills/openclaw-manager/scripts/instance_manager.py restart openclaw-feishu-2774
+python3 skills/openclaw-manager/scripts/instance_manager.py restart openclaw-feishu-demo
 ```
 
 ### 步骤 4: 验证
 
 ```bash
 # 查看日志，确认没有 "Unknown model" 错误
-tail -50 workspace/logs/openclaw-feishu-2774.log | grep -i error
+tail -50 workspace/logs/openclaw-feishu-demo.log | grep -i error
 
 # 应该看到：
 # （无输出 = 没有错误）
@@ -403,7 +403,7 @@ python3 scripts/health_check.py
 ```
 🏥 OpenClaw 实例健康检查
 📋 检查 1 个实例...
-✅ openclaw-feishu-2774: 健康
+✅ openclaw-feishu-demo: 健康
 ```
 
 ### 3. ✅ 批量修复工具（已完成实施）
@@ -439,7 +439,7 @@ python3 scripts/fix_all_models.py
 
 ```bash
 # 查看实例的模型配置
-cat workspace/lobsters/openclaw-feishu-2774/.openclaw/openclaw.json | python3 -m json.tool | grep -A 20 '"models"'
+cat workspace/lobsters/openclaw-feishu-demo/.openclaw/openclaw.json | python3 -m json.tool | grep -A 20 '"models"'
 
 # 应该看到完整的 providers.bailian 配置
 ```
@@ -448,7 +448,7 @@ cat workspace/lobsters/openclaw-feishu-2774/.openclaw/openclaw.json | python3 -m
 
 ```bash
 # 查看是否有模型错误
-tail -100 workspace/logs/openclaw-feishu-2774.log | grep -i "unknown model"
+tail -100 workspace/logs/openclaw-feishu-demo.log | grep -i "unknown model"
 
 # 无输出 = ✅ 正常
 # 有输出 = ❌ 有问题
@@ -458,17 +458,17 @@ tail -100 workspace/logs/openclaw-feishu-2774.log | grep -i "unknown model"
 
 ```bash
 # 1. 停止实例
-python3 skills/openclaw-manager/scripts/instance_manager.py stop openclaw-feishu-2774
+python3 skills/openclaw-manager/scripts/instance_manager.py stop openclaw-feishu-demo
 
 # 2. 从全局配置复制模型配置
 cp workspace/data/models.json /tmp/models.json
 
 # 3. 手动合并到实例配置
-# 编辑 workspace/lobsters/openclaw-feishu-2774/.openclaw/openclaw.json
+# 编辑 workspace/lobsters/openclaw-feishu-demo/.openclaw/openclaw.json
 # 添加 "models": { ... } 部分
 
 # 4. 重启实例
-python3 skills/openclaw-manager/scripts/instance_manager.py restart openclaw-feishu-2774
+python3 skills/openclaw-manager/scripts/instance_manager.py restart openclaw-feishu-demo
 ```
 
 ---
@@ -490,7 +490,7 @@ python3 skills/openclaw-manager/scripts/instance_manager.py restart openclaw-fei
 
 ## 🎊 当前状态
 
-### 龙虾: openclaw-feishu-2774
+### 龙虾: openclaw-feishu-demo
 
 **配置状态**: ✅ 已修复  
 **运行状态**: 🟢 正常运行  

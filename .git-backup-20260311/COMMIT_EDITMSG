@@ -1,6 +1,0 @@
-Update documentation to prevent AI assumptions about existing instances
-
-- Added a warning in AGENTS.md to instruct AI to check for existing instances before proceeding with user requests.
-- Revised instance-related commands in documentation to use a generic placeholder `<实例名>` instead of hardcoded example names.
-- Introduced a new guide for first-time users in README.md to clarify the setup process for new machines.
-- Enhanced various documentation files to ensure consistency and clarity regarding instance management and usage scenarios.

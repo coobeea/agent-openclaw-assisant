@@ -120,7 +120,7 @@ python3 skills/openclaw-manager/scripts/instance_manager.py status <name>
 
 ### 4. ⭐⭐⭐⭐ AI 助手假设实例存在 🆕
 
-**症状**: 新机器上使用时，AI 自动使用不存在的实例名（如 openclaw-feishu-2774）
+**症状**: 新机器上使用时，AI 自动使用不存在的实例名（如 openclaw-feishu-demo）
 
 **根本原因**: 文档中硬编码了示例实例名，AI 误以为是真实实例
 

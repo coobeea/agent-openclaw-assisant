@@ -53,7 +53,7 @@ OpenClaw Web UI 使用 **token 认证**机制保护控制台访问：
 
 ### 方法 1: 使用带 Token 的 URL（推荐）
 
-**龙虾实例**: `openclaw-feishu-2774`  
+**龙虾实例**: `openclaw-feishu-demo`  
 **Token**: `4c86b66c1a40575d2167440a2974c0653d70cc976644d034`
 
 **正确的访问 URL**:
@@ -68,7 +68,7 @@ http://127.0.0.1:18800/#token=4c86b66c1a40575d2167440a2974c0653d70cc976644d034
 ### 方法 2: 使用 OpenClaw Dashboard 命令
 
 ```bash
-cd /Users/lifeng/git/git-claw/agent-openclaw-assisant/workspace/lobsters/openclaw-feishu-2774
+cd /Users/lifeng/git/git-claw/agent-openclaw-assisant/workspace/lobsters/openclaw-feishu-demo
 
 # 自动打开带 token 的 dashboard
 node /Users/lifeng/git/git_agents/openclaw/dist/index.js dashboard
@@ -100,7 +100,7 @@ Opened in your browser.
 
 ```bash
 # 查看龙虾的配置文件
-cat workspace/lobsters/openclaw-feishu-2774/.openclaw/openclaw.json | grep -A 5 '"auth"'
+cat workspace/lobsters/openclaw-feishu-demo/.openclaw/openclaw.json | grep -A 5 '"auth"'
 ```
 
 **输出**:
@@ -115,7 +115,7 @@ cat workspace/lobsters/openclaw-feishu-2774/.openclaw/openclaw.json | grep -A 5 
 
 ```bash
 # 查看启动日志
-tail -100 workspace/logs/openclaw-feishu-2774.log | grep -i "token\|dashboard"
+tail -100 workspace/logs/openclaw-feishu-demo.log | grep -i "token\|dashboard"
 ```
 
 ### 方法 3: 使用 Python 脚本
@@ -126,7 +126,7 @@ import json
 from pathlib import Path
 
 # 读取配置文件
-config_file = Path("workspace/lobsters/openclaw-feishu-2774/.openclaw/openclaw.json")
+config_file = Path("workspace/lobsters/openclaw-feishu-demo/.openclaw/openclaw.json")
 with open(config_file) as f:
     config = json.load(f)
 
@@ -175,7 +175,7 @@ def show_instance_info(instance_name: str):
 
 ```bash
 # 1. 启动龙虾
-python3 skills/openclaw-manager/scripts/instance_manager.py start openclaw-feishu-2774
+python3 skills/openclaw-manager/scripts/instance_manager.py start openclaw-feishu-demo
 
 # 输出:
 # ✅ 已启动，PID: 94554
@@ -210,13 +210,13 @@ python3 skills/openclaw-manager/scripts/instance_manager.py start openclaw-feish
 
 ```bash
 # 1. 停止龙虾
-python3 skills/openclaw-manager/scripts/instance_manager.py stop openclaw-feishu-2774
+python3 skills/openclaw-manager/scripts/instance_manager.py stop openclaw-feishu-demo
 
 # 2. 编辑配置文件
 # 手动修改 .openclaw/openclaw.json 中的 token 值
 
 # 3. 重启龙虾
-python3 skills/openclaw-manager/scripts/instance_manager.py start openclaw-feishu-2774
+python3 skills/openclaw-manager/scripts/instance_manager.py start openclaw-feishu-demo
 ```
 
 ---
@@ -233,7 +233,7 @@ python3 skills/openclaw-manager/scripts/instance_manager.py start openclaw-feish
 
 ### 当前实例访问信息
 
-**实例名称**: `openclaw-feishu-2774`  
+**实例名称**: `openclaw-feishu-demo`  
 **端口**: `18800`  
 **Token**: `4c86b66c1a40575d2167440a2974c0653d70cc976644d034`
 

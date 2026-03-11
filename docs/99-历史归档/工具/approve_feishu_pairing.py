@@ -172,7 +172,7 @@ def main():
         print(f"用法: python {Path(__file__).name} <instance-name>")
         print()
         print("示例:")
-        print(f"  python {Path(__file__).name} openclaw-feishu-2774")
+        print(f"  python {Path(__file__).name} openclaw-feishu-demo")
         sys.exit(1)
     
     instance_name = sys.argv[1]

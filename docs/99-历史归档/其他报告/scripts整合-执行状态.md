@@ -54,7 +54,7 @@ class InstanceManager:
 **新增命令**:
 ```bash
 python skills/openclaw-manager/scripts/instance_manager.py health-check
-python skills/openclaw-manager/scripts/instance_manager.py health-check openclaw-feishu-2774
+python skills/openclaw-manager/scripts/instance_manager.py health-check openclaw-feishu-demo
 ```
 
 ---
@@ -95,7 +95,7 @@ class ChannelManager:
 **新增命令**:
 ```bash
 python skills/openclaw-channel/scripts/channel_manager.py approve-pairing \
-  --instance openclaw-feishu-2774 \
+  --instance openclaw-feishu-demo \
   --platform feishu
 ```
 
@@ -134,7 +134,7 @@ class ModelManager:
 **新增命令**:
 ```bash
 python skills/openclaw-model/scripts/model_manager.py fix-config
-python skills/openclaw-model/scripts/model_manager.py fix-config openclaw-feishu-2774
+python skills/openclaw-model/scripts/model_manager.py fix-config openclaw-feishu-demo
 ```
 
 ---
@@ -236,7 +236,7 @@ python skills/openclaw-model/scripts/model_manager.py fix-config openclaw-feishu
    
    # 配对批准
    python skills/openclaw-channel/scripts/channel_manager.py approve-pairing \
-     --instance openclaw-feishu-2774
+     --instance openclaw-feishu-demo
    
    # 配置修复
    python skills/openclaw-model/scripts/model_manager.py fix-config

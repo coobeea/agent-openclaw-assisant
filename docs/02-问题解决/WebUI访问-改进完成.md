@@ -78,13 +78,13 @@ print(f"   Web UI: {token_url}")
 
 **效果**:
 ```bash
-$ python3 skills/openclaw-manager/scripts/instance_manager.py start openclaw-feishu-2774
+$ python3 skills/openclaw-manager/scripts/instance_manager.py start openclaw-feishu-demo
 
 🎉 实例启动成功！
 
 🎯 访问方式:
    Web UI: http://127.0.0.1:18800/#token=4c86b66c1a40575d2167440a2974c0653d70cc976644d034
-   日志: tail -f workspace/logs/openclaw-feishu-2774.log
+   日志: tail -f workspace/logs/openclaw-feishu-demo.log
 ```
 
 ---
@@ -105,22 +105,22 @@ if process_alive:
 
 **效果**:
 ```bash
-$ python3 skills/openclaw-manager/scripts/instance_manager.py status openclaw-feishu-2774
+$ python3 skills/openclaw-manager/scripts/instance_manager.py status openclaw-feishu-demo
 
-📊 实例状态: openclaw-feishu-2774
+📊 实例状态: openclaw-feishu-demo
 
-名称: openclaw-feishu-2774
+名称: openclaw-feishu-demo
 状态: 🟢 运行中
 端口: 18800
 模型: bailian/qwen3.5-plus
-工作空间: /Users/lifeng/git/git-claw/agent-openclaw-assisant/workspace/lobsters/openclaw-feishu-2774
+工作空间: /Users/lifeng/git/git-claw/agent-openclaw-assisant/workspace/lobsters/openclaw-feishu-demo
 进程PID: 94554
 
 🌐 访问地址:
    Web UI: http://127.0.0.1:18800/#token=4c86b66c1a40575d2167440a2974c0653d70cc976644d034
 
 🎯 可用操作:
-   停止: python ... stop openclaw-feishu-2774
+   停止: python ... stop openclaw-feishu-demo
 ```
 
 ---
@@ -168,7 +168,7 @@ $ python3 skills/openclaw-manager/scripts/instance_manager.py status openclaw-fe
 ### 测试 1: start 命令
 
 ```bash
-$ python3 skills/openclaw-manager/scripts/instance_manager.py start openclaw-feishu-2774
+$ python3 skills/openclaw-manager/scripts/instance_manager.py start openclaw-feishu-demo
 
 ✅ 结果: 显示带 token 的完整 URL
 ✅ 浏览器: 可以直接访问
@@ -177,7 +177,7 @@ $ python3 skills/openclaw-manager/scripts/instance_manager.py start openclaw-fei
 ### 测试 2: status 命令
 
 ```bash
-$ python3 skills/openclaw-manager/scripts/instance_manager.py status openclaw-feishu-2774
+$ python3 skills/openclaw-manager/scripts/instance_manager.py status openclaw-feishu-demo
 
 ✅ 结果: 在"访问地址"部分显示带 token 的 URL
 ✅ 浏览器: 可以直接访问
@@ -186,7 +186,7 @@ $ python3 skills/openclaw-manager/scripts/instance_manager.py status openclaw-fe
 ### 测试 3: restart 命令
 
 ```bash
-$ python3 skills/openclaw-manager/scripts/instance_manager.py restart openclaw-feishu-2774
+$ python3 skills/openclaw-manager/scripts/instance_manager.py restart openclaw-feishu-demo
 
 ✅ 结果: 重启后显示带 token 的 URL
 ✅ 浏览器: 可以直接访问
@@ -235,7 +235,7 @@ $ python3 skills/openclaw-manager/scripts/instance_manager.py restart openclaw-f
 
 **方法 1: 启动时获取** （推荐）
 ```bash
-python3 skills/openclaw-manager/scripts/instance_manager.py start openclaw-feishu-2774
+python3 skills/openclaw-manager/scripts/instance_manager.py start openclaw-feishu-demo
 
 # 输出包含：
 #   Web UI: http://127.0.0.1:18800/#token=xxx
@@ -244,7 +244,7 @@ python3 skills/openclaw-manager/scripts/instance_manager.py start openclaw-feish
 
 **方法 2: 查看状态获取**
 ```bash
-python3 skills/openclaw-manager/scripts/instance_manager.py status openclaw-feishu-2774
+python3 skills/openclaw-manager/scripts/instance_manager.py status openclaw-feishu-demo
 
 # 输出包含：
 #   访问地址:
@@ -254,10 +254,10 @@ python3 skills/openclaw-manager/scripts/instance_manager.py status openclaw-feis
 **方法 3: 手动拼接** （不推荐，但仍然有效）
 ```bash
 # 1. 查看端口
-cat workspace/data/agents.jsonl | grep openclaw-feishu-2774
+cat workspace/data/agents.jsonl | grep openclaw-feishu-demo
 
 # 2. 查看 token
-cat workspace/lobsters/openclaw-feishu-2774/.openclaw/openclaw.json | grep token
+cat workspace/lobsters/openclaw-feishu-demo/.openclaw/openclaw.json | grep token
 
 # 3. 手动拼接 URL
 http://127.0.0.1:{port}/#token={token}

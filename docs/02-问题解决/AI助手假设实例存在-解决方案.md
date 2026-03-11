@@ -15,10 +15,10 @@
 在**全新机器**上首次使用时：
 ```
 用户: "帮我配置飞书"
-AI: "好的，我为 openclaw-feishu-2774 配置飞书..."  ❌
+AI: "好的，我为 openclaw-feishu-demo 配置飞书..."  ❌
 
 问题: 
-- 新机器上根本没有 openclaw-feishu-2774
+- 新机器上根本没有 openclaw-feishu-demo
 - AI 自动假设这个实例存在
 - 导致命令执行失败
 ```
@@ -38,13 +38,13 @@ AI: "好的，我为 openclaw-feishu-2774 配置飞书..."  ❌
 **问题根源**: 文档中到处都是**硬编码的示例实例名**
 
 **问题文件**:
-1. `AGENTS.md` - 技能包说明中使用 `openclaw-feishu-2774` 作为示例
+1. `AGENTS.md` - 技能包说明中使用 `openclaw-feishu-demo` 作为示例
 2. `docs/01-使用指南/*.md` - 使用指南中的命令示例
 3. `skills/*/SKILL.md` - 技能包文档中的示例命令
 
 **AI 的误判逻辑**:
 ```
-AI 读取 AGENTS.md → 看到 "openclaw-feishu-2774" 
+AI 读取 AGENTS.md → 看到 "openclaw-feishu-demo" 
 → 误以为这是用户的实例 
 → 直接使用该名称执行命令 
 → 失败（实例不存在）
@@ -80,7 +80,7 @@ AI 读取 AGENTS.md → 看到 "openclaw-feishu-2774"
 **替换前**:
 ```bash
 # ❌ 硬编码具体实例名
-python skills/openclaw-manager/scripts/instance_manager.py start openclaw-feishu-2774
+python skills/openclaw-manager/scripts/instance_manager.py start openclaw-feishu-demo
 ```
 
 **替换后**:
@@ -135,7 +135,7 @@ python skills/openclaw-manager/scripts/instance_manager.py list
 
 # 2. AI 应该识别到这是新环境
 # 3. AI 应该引导用户创建实例
-# 4. AI 不应该使用 openclaw-feishu-2774
+# 4. AI 不应该使用 openclaw-feishu-demo
 ```
 
 ### 测试场景 2: 已有实例
@@ -145,7 +145,7 @@ python skills/openclaw-manager/scripts/instance_manager.py list
 python skills/openclaw-manager/scripts/instance_manager.py list
 
 # 预期输出:
-# openclaw-feishu-2774
+# openclaw-feishu-demo
 # openclaw-qq-001
 
 # 2. AI 应该使用列表中实际存在的名称
@@ -176,7 +176,7 @@ AI:
 用户: "帮我配置飞书"
 
 AI:
-❌ "好的，我为 openclaw-feishu-2774 配置..."
+❌ "好的，我为 openclaw-feishu-demo 配置..."
 ❌ 直接使用文档示例中的实例名
 ❌ 不检查实例是否存在
 ```
@@ -255,7 +255,7 @@ AI:
 ```
 
 **对比**:
-- ❌ **修复前**: 直接假设有 openclaw-feishu-2774 → 失败
+- ❌ **修复前**: 直接假设有 openclaw-feishu-demo → 失败
 - ✅ **修复后**: 先检查 → 引导创建 → 成功
 
 ---

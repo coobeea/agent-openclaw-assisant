@@ -72,16 +72,16 @@ python skills/openclaw-manager/scripts/instance_manager.py restart <实例名>
 
 ```bash
 # 1. 创建实例
-python skills/openclaw-manager/scripts/instance_manager.py create openclaw-feishu-2774
+python skills/openclaw-manager/scripts/instance_manager.py create openclaw-feishu-demo
 
 # 2. 从模板初始化模型
 python skills/openclaw-model/scripts/model_manager.py init-from-template \
   bailian-coding-models \
   sk-sp-your-api-key \
-  --instance openclaw-feishu-2774
+  --instance openclaw-feishu-demo
 
 # 3. 重启实例
-python skills/openclaw-manager/scripts/instance_manager.py restart openclaw-feishu-2774
+python skills/openclaw-manager/scripts/instance_manager.py restart openclaw-feishu-demo
 ```
 
 ### 场景 2: 更新 API Key
@@ -91,7 +91,7 @@ python skills/openclaw-manager/scripts/instance_manager.py restart openclaw-feis
 python skills/openclaw-model/scripts/model_manager.py init-from-template \
   bailian-coding-models \
   sk-sp-new-api-key \
-  --instance openclaw-feishu-2774
+  --instance openclaw-feishu-demo
 
 # 重启实例
 python skills/openclaw-manager/scripts/instance_manager.py restart <实例名>
@@ -105,7 +105,7 @@ python skills/openclaw-manager/scripts/instance_manager.py restart <实例名>
 python skills/openclaw-model/scripts/model_manager.py init-from-template \
   bailian-coding-models \
   sk-sp-your-api-key \
-  --instance openclaw-feishu-2774
+  --instance openclaw-feishu-demo
 ```
 
 ---

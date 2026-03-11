@@ -158,6 +158,8 @@ htmlcov/
 *_backup
 backup/
 backups/
+.git-backup*/
+.git-backup-*/
 
 # 压缩文件（排除模板）
 *.zip

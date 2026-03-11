@@ -45,7 +45,7 @@
 python skills/openclaw-manager/scripts/instance_manager.py health-check
 
 # 检查单个实例
-python skills/openclaw-manager/scripts/instance_manager.py health-check openclaw-feishu-2774
+python skills/openclaw-manager/scripts/instance_manager.py health-check openclaw-feishu-demo
 ```
 
 ---
@@ -61,12 +61,12 @@ python skills/openclaw-manager/scripts/instance_manager.py health-check openclaw
 ```bash
 # 批准配对（自动重启）
 python skills/openclaw-channel/scripts/channel_manager.py approve-pairing \
-  --instance openclaw-feishu-2774 \
+  --instance openclaw-feishu-demo \
   --platform feishu
 
 # 批准配对（不自动重启）
 python skills/openclaw-channel/scripts/channel_manager.py approve-pairing \
-  --instance openclaw-feishu-2774 \
+  --instance openclaw-feishu-demo \
   --platform feishu \
   --no-restart
 ```
@@ -87,7 +87,7 @@ python skills/openclaw-channel/scripts/channel_manager.py approve-pairing \
 python skills/openclaw-model/scripts/model_manager.py fix-config
 
 # 修复单个实例
-python skills/openclaw-model/scripts/model_manager.py fix-config openclaw-feishu-2774
+python skills/openclaw-model/scripts/model_manager.py fix-config openclaw-feishu-demo
 ```
 
 ---
