@@ -66,11 +66,12 @@ class AgentManager:
         if 'agents' not in config:
             config['agents'] = {}
         
-        if 'agents' not in config['agents']:
-            config['agents']['agents'] = []
+        # 修正：OpenClaw 的智能体列表字段是 'list' 而不是 'agents'
+        if 'list' not in config['agents']:
+            config['agents']['list'] = []
         
         # 检查是否已存在
-        agents = config['agents'].get('agents', [])
+        agents = config['agents'].get('list', [])
         if isinstance(agents, list):
             for agent in agents:
                 if agent.get('id') == agent_id:
@@ -91,7 +92,17 @@ class AgentManager:
         else:
             agents = [new_agent]
         
-        config['agents']['agents'] = agents
+        config['agents']['list'] = agents
+        
+        # 4. 在文件系统中创建智能体目录
+        agent_dir = instance_path / 'agents' / agent_id
+        try:
+            agent_dir.mkdir(parents=True, exist_ok=True)
+            (agent_dir / 'agent').mkdir(exist_ok=True)
+            (agent_dir / 'sessions').mkdir(exist_ok=True)
+            print(f"✅ 已创建智能体目录: {agent_dir}")
+        except Exception as e:
+            print(f"⚠️ 创建智能体目录失败: {e}")
         
         # 4. 保存配置
         try:
@@ -142,7 +153,8 @@ class AgentManager:
             with open(config_file, 'r') as f:
                 config = json.load(f)
             
-            agents = config.get('agents', {}).get('agents', [])
+            # 修正：OpenClaw 的智能体列表字段是 'list'
+            agents = config.get('agents', {}).get('list', [])
             
             if not agents:
                 print("实例中没有配置智能体")
@@ -168,6 +180,91 @@ class AgentManager:
             print(f"❌ 读取失败: {e}")
             return []
     
+    def bind_channel(self, instance_name: str, agent_id: str, channel: str, account_id: Optional[str] = None) -> bool:
+        """
+        将智能体绑定到渠道
+        
+        Args:
+            instance_name: 实例名称
+            agent_id: 智能体ID
+            channel: 渠道名称 (如 feishu, qq)
+            account_id: 账号ID (可选，用于多账号场景)
+        """
+        print(f"\n{'=' * 80}")
+        print(f"🔗 绑定渠道: {agent_id} -> {channel}" + (f" ({account_id})" if account_id else ""))
+        print(f"{'=' * 80}\n")
+        
+        # 1. 加载实例配置
+        instance_path = self.pm.get_instance_path(instance_name)
+        config_file = instance_path / '.openclaw' / 'openclaw.json'
+        
+        if not config_file.exists():
+            print(f"❌ 实例不存在: {instance_name}")
+            return False
+            
+        # 2. 读取配置
+        try:
+            with open(config_file, 'r') as f:
+                config = json.load(f)
+        except Exception as e:
+            print(f"❌ 读取配置失败: {e}")
+            return False
+            
+        # 3. 检查智能体是否存在
+        agents = config.get('agents', {}).get('list', config.get('agents', {}).get('agents', []))
+        agent_exists = False
+        for agent in agents:
+            if agent.get('id') == agent_id:
+                agent_exists = True
+                break
+                
+        if not agent_exists and agent_id != "main":
+            print(f"❌ 智能体不存在: {agent_id}")
+            return False
+            
+        # 4. 添加绑定规则
+        if 'bindings' not in config:
+            config['bindings'] = []
+            
+        # 检查是否已存在相同的绑定
+        for binding in config['bindings']:
+            match = binding.get('match', {})
+            if match.get('channel') == channel and match.get('accountId') == account_id:
+                print(f"⚠️ 渠道 {channel}" + (f"({account_id})" if account_id else "") + f" 已绑定到智能体 {binding.get('agentId')}")
+                print(f"🔄 正在更新绑定...")
+                binding['agentId'] = agent_id
+                break
+        else:
+            # 添加新绑定
+            new_binding = {
+                "agentId": agent_id,
+                "match": {
+                    "channel": channel
+                }
+            }
+            if account_id:
+                new_binding["match"]["accountId"] = account_id
+                new_binding["comment"] = f"{channel} ({account_id}) -> {agent_id}"
+            else:
+                new_binding["comment"] = f"{channel} -> {agent_id}"
+                
+            config['bindings'].append(new_binding)
+            
+        # 5. 保存配置
+        try:
+            with open(config_file, 'w') as f:
+                json.dump(config, f, indent=2, ensure_ascii=False)
+            
+            print(f"✅ 绑定成功！")
+            print(f"   渠道: {channel}")
+            if account_id:
+                print(f"   账号: {account_id}")
+            print(f"   智能体: {agent_id}")
+            return True
+        except Exception as e:
+            print(f"❌ 保存配置失败: {e}")
+            return False
+
     def delete(self, instance_name: str, agent_id: str) -> bool:
         """
         删除智能体
@@ -249,6 +346,13 @@ def main():
     list_parser = subparsers.add_parser('list', help='列出智能体')
     list_parser.add_argument('instance', help='实例名称')
     
+    # bind-channel 命令
+    bind_parser = subparsers.add_parser('bind-channel', help='绑定渠道')
+    bind_parser.add_argument('instance', help='实例名称')
+    bind_parser.add_argument('agent_id', help='智能体ID')
+    bind_parser.add_argument('channel', help='渠道名称 (如 feishu)')
+    bind_parser.add_argument('--account-id', help='账号ID (多账号场景使用)')
+    
     # delete 命令
     delete_parser = subparsers.add_parser('delete', help='删除智能体')
     delete_parser.add_argument('instance', help='实例名称')
@@ -269,6 +373,8 @@ def main():
             manager.create(args.instance, args.agent_id, args.agent_name, args.model)
         elif args.command == 'list':
             manager.list(args.instance)
+        elif args.command == 'bind-channel':
+            manager.bind_channel(args.instance, args.agent_id, args.channel, args.account_id)
         elif args.command == 'delete':
             manager.delete(args.instance, args.agent_id)
     except KeyboardInterrupt:
