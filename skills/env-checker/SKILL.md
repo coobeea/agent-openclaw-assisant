@@ -17,6 +17,7 @@ created: 2026-02-26
 - **环境缺失**：执行 Python 脚本时报 `python: command not found` 或 `ModuleNotFoundError`
 - **环境初始化**：为某个 Skill 创建独立虚拟环境
 - **前置检查**：任何 Python Skill 执行前的环境就绪保障
+- **🆕 快速检查**：检查虚拟环境是否存在，无需创建（使用 check.sh/check.bat）
 
 ## 核心原则
 
@@ -33,6 +34,9 @@ env-checker/
 ├── SKILL.md              # 本文档
 ├── requirements.txt      # 统一依赖清单（汇总所有 Skill 的第三方库）
 └── scripts/
+    ├── check.sh          # 虚拟环境检查脚本（macOS/Linux）🆕
+    ├── check.bat         # 虚拟环境检查脚本（Windows）🆕
+    ├── check_venv.py     # 虚拟环境检查脚本（Python 跨平台）🆕
     ├── setup.sh          # macOS / Linux 一键脚本
     ├── setup.bat         # Windows 一键脚本
     └── verify.py         # 环境验证脚本
@@ -49,6 +53,54 @@ Step 5  自动验证       →  运行 verify.py 逐项检查 Python 版本和�
 ```
 
 ## 使用方式
+
+### 🆕 方式 1: 快速检查虚拟环境（推荐第一步）
+
+在执行任何操作前，先检查虚拟环境是否存在：
+
+**macOS / Linux:**
+```bash
+bash skills/env-checker/scripts/check.sh
+```
+
+**Windows:**
+```cmd
+skills\env-checker\scripts\check.bat
+```
+
+**输出格式:**
+```
+# 虚拟环境存在时（退出码 0）
+VENV_EXISTS=true
+VENV_PYTHON=/path/to/.venv/bin/python
+VENV_DIR=/path/to/.venv
+PROJECT_ROOT=/path/to/project
+PYTHON_VERSION=Python 3.12.8
+
+# 虚拟环境不存在时（退出码 1）
+VENV_EXISTS=false
+VENV_DIR=/path/to/.venv
+PROJECT_ROOT=/path/to/project
+SETUP_COMMAND=bash /path/to/skills/env-checker/scripts/setup.sh
+```
+
+**在脚本中使用:**
+```bash
+# 检查并获取虚拟环境路径
+if eval "$(bash skills/env-checker/scripts/check.sh 2>&1)"; then
+    # 虚拟环境存在，使用它
+    echo "使用虚拟环境: $VENV_PYTHON"
+    $VENV_PYTHON --version
+else
+    # 虚拟环境不存在，创建它
+    echo "虚拟环境不存在，开始创建..."
+    bash "$SETUP_COMMAND"
+fi
+```
+
+---
+
+### 方式 2: 创建虚拟环境（完整初始化）
 
 ### 你（大模型）必须按以下步骤操作：
 

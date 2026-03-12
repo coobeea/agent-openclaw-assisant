@@ -35,7 +35,7 @@
 - ✅ 共享工具库（common.py, logger.py, crypto.py）
 - ✅ 配置管理（global.yaml.template）
 - ✅ 软链接激活机制
-- ✅ 验证脚本（verify.sh）
+- ✅ 环境验证（env-checker 技能包）
 
 ### 文档系统（12篇）
 
@@ -196,14 +196,16 @@
 
 ---
 
-## 🔍 验证状态
+## 🔍 环境验证
 
-### 自动验证（./verify.sh）
+### 使用 env-checker 验证
 
-```
-通过: 46 项检查
-失败: 0 项
-状态: ✅ 所有检查通过
+```bash
+# 检查虚拟环境
+bash skills/env-checker/scripts/check.sh
+
+# 验证依赖库
+.venv/bin/python skills/env-checker/scripts/verify.py
 ```
 
 ### 手动验证
@@ -241,7 +243,7 @@
 
 ### 立即可做
 
-1. **验证项目**: 运行 `./verify.sh`
+1. **验证环境**: 运行 `bash skills/env-checker/scripts/check.sh`
 2. **阅读文档**: 从 `docs/快速开始.md` 开始
 3. **测试功能**: 在 Cursor 中尝试创建实例
 

@@ -127,7 +127,7 @@ rg "关键词" docs/
 
 - **项目README**: [../README.md](../README.md)
 - **AI助手配置**: [../AGENTS.md](../AGENTS.md)
-- **验证脚本**: [../verify.sh](../verify.sh)
+- **环境验证**: [env-checker 技能包](../skills/env-checker/)
 
 ---
 

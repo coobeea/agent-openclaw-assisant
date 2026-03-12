@@ -148,7 +148,6 @@ agent-openclaw-assisant/
 ├── 📄 LICENSE                           # MIT许可证
 ├── 📄 AGENTS.md                         # ⭐ Cursor 智能入口文件（核心，意图识别+流程编排）
 │
-├── 🔧 verify.sh                         # 项目验证脚本
 ├── 📄 requirements.txt                  # Python依赖
 └── 📄 .gitignore                        # Git排除规则（隐私保护）
 ```
@@ -189,7 +188,7 @@ agent-openclaw-assisant/
 | README.md | 项目主入口，完整介绍 | ⭐⭐⭐ |
 | STATUS.md | 项目状态快照 | ⭐⭐⭐ |
 | DELIVERY.md | 详细交付报告 | ⭐⭐ |
-| verify.sh | 一键验证脚本 | ⭐⭐⭐ |
+| env-checker | 环境验证技能包 | ⭐⭐⭐ |
 
 ### 必读文档
 
@@ -236,7 +235,6 @@ skills/openclaw-xxx/
 | CONTRIBUTING.md | 贡献指南 | ✅ |
 | LICENSE | MIT许可证 | ✅ |
 | AGENTS.md | ⭐ Cursor 智能入口（意图识别+流程编排引擎） | ✅ |
-| verify.sh | 验证脚本 | ✅ |
 | requirements.txt | Python依赖 | ✅ |
 | .gitignore | Git排除规则 | ✅ |
 
@@ -435,8 +433,8 @@ agent-openclaw-assisant/
 ### P0（必读）
 
 - README.md
-- verify.sh
 - docs/快速开始.md
+- skills/env-checker/SKILL.md
 
 ### P1（推荐阅读）
 
@@ -530,7 +528,7 @@ openclaw-model, openclaw-agent (高级)
 
 ```
 1. 阅读 README.md（5分钟）
-2. 运行 ./verify.sh（1分钟）
+2. 验证环境：bash skills/env-checker/scripts/check.sh（1分钟）
 3. 阅读 docs/快速开始.md（10分钟）
 4. 在 Cursor 中尝试创建实例（5分钟）
 ```
@@ -554,7 +552,7 @@ openclaw-model, openclaw-agent (高级)
 1. 查看 docs/FAQ.md 搜索问题关键词
 2. 如果是技能包问题，查看对应 reference/
 3. 如果是激活问题，查看 docs/技能包激活验证.md
-4. 运行 ./verify.sh 诊断
+4. 验证环境：bash skills/env-checker/scripts/check.sh
 ```
 
 ### 场景4: 我想贡献代码
@@ -587,8 +585,8 @@ chmod +x skills/new-skill/scripts/tool.py
 cd .cursor/skills
 ln -s ../../skills/new-skill new-skill
 
-# 5. 验证
-../../verify.sh
+# 5. 验证环境
+bash ../../skills/env-checker/scripts/check.sh
 ```
 
 ### 重组目录结构
@@ -640,7 +638,6 @@ tar -czf openclaw-skills-v1.0.0-core.tar.gz \
   shared/ \
   .cursor/ \
   README.md \
-  verify.sh \
   requirements.txt \
   .gitignore
 ```

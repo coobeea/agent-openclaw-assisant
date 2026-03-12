@@ -8,7 +8,6 @@
 [![Docs](https://img.shields.io/badge/docs-14-informational)](docs/)
 [![GitHub](https://img.shields.io/badge/github-openclaw%2Fopenclaw-blue)](https://github.com/openclaw/openclaw)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-[![Verified](https://img.shields.io/badge/verified-46%2F46-success)](verify.sh)
 
 ## 🎉 项目状态
 
@@ -17,9 +16,8 @@
 | 指标 | 状态 | 说明 |
 |------|------|------|
 | **版本** | v1.0.0 | 首个正式版本 |
-| **核心功能** | ✅ 100% | 6个技能包全部完成 |
+| **核心功能** | ✅ 100% | 7个技能包全部完成 |
 | **文档** | ✅ 100% | 40+ 篇文档 |
-| **验证** | ✅ 46/46 | 所有检查通过 |
 | **可用性** | 🟢 立即可用 | 可投入使用 |
 
 ## 📖 项目简介
@@ -106,15 +104,21 @@ OpenClaw 是一个开源的个人AI助手平台，支持多种消息平台（飞
 - （可选）Node.js 18+ - 仅在需要安装 OpenClaw 时需要
 - （可选）Docker - 用于容器部署
 
-### ⚡ 30秒验证
+### ⚡ 快速验证环境
 
-克隆项目后，立即验证：
+克隆项目后，验证环境：
 
 ```bash
-./verify.sh
+# macOS/Linux
+bash skills/env-checker/scripts/check.sh
+
+# Windows  
+skills\env-checker\scripts\check.bat
 ```
 
-**预期输出**: `🎉 所有检查通过！项目已就绪。`
+**预期**: 
+- 虚拟环境存在 → 显示 Python 路径
+- 虚拟环境不存在 → 显示创建命令
 
 ### 安装
 
@@ -122,9 +126,6 @@ OpenClaw 是一个开源的个人AI助手平台，支持多种消息平台（飞
 # 克隆仓库
 git clone <repo-url> agent-openclaw-assisant
 cd agent-openclaw-assisant
-
-# 验证项目完整性
-./verify.sh
 
 # 🔴 创建虚拟环境（强制要求，使用 env-checker）
 bash skills/env-checker/scripts/setup.sh
@@ -145,13 +146,31 @@ bash skills/env-checker/scripts/setup.sh
 **⚠️ 重要**: 
 - 所有 Python 脚本必须使用 `.venv/bin/python` 运行
 - 虚拟环境是 `.venv`（隐藏目录），不是 `venv`
+- 🆕 **使用 env-checker 检查虚拟环境** - 跨平台支持，准确定位
 - 详见 [虚拟环境管理规范](docs/03-规范约定/虚拟环境管理规范.md)
 
 ### 在 Cursor 中使用
 
-#### 前置步骤：创建虚拟环境（使用 env-checker）
+#### 前置步骤：检查和创建虚拟环境
 
-**🔴 必须先创建虚拟环境**:
+**🆕 快速检查虚拟环境**（跨平台）:
+```bash
+# macOS/Linux
+bash skills/env-checker/scripts/check.sh
+
+# Windows
+skills\env-checker\scripts\check.bat
+
+# 输出示例（不存在）：
+#   VENV_EXISTS=false
+#   SETUP_COMMAND=bash /path/to/skills/env-checker/scripts/setup.sh
+
+# 输出示例（已存在）：
+#   VENV_EXISTS=true
+#   VENV_PYTHON=/path/to/.venv/bin/python
+```
+
+**🔴 如果虚拟环境不存在，创建它**:
 ```bash
 # macOS/Linux
 bash skills/env-checker/scripts/setup.sh

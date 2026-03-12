@@ -40,18 +40,26 @@
 
 ## 🚨 AI核心规则
 
-### 1. 先检查实例列表
+### 1. 先检查虚拟环境（使用 env-checker）
 ```
-第一步：.venv/bin/python skills/openclaw-manager/scripts/instance_manager.py list
+第一步：检查虚拟环境状态
+  macOS/Linux: bash skills/env-checker/scripts/check.sh
+  Windows:     skills\env-checker\scripts\check.bat
+  
+  → VENV_EXISTS=true  → 获取 VENV_PYTHON 路径，继续
+  → VENV_EXISTS=false → 执行 SETUP_COMMAND 创建环境
 
-结果0个 → 引导创建
+说明：check.sh/check.bat 始终检查项目根目录的 .venv/，
+      无论在哪个目录执行都能找到正确位置（跨平台支持）
+```
+
+### 2. 检查实例列表
+```
+使用虚拟环境 Python 执行：
+  $VENV_PYTHON skills/openclaw-manager/scripts/instance_manager.py list
+
+结果0个 → 引导创建实例
 结果>0个 → 使用实际存在的实例名
-```
-
-### 2. 检查虚拟环境
-```
-检查：.venv/bin/python 是否存在
-不存在 → bash skills/env-checker/scripts/setup.sh
 ```
 
 ### 3. 查经验库
@@ -65,10 +73,17 @@
 信息充足 → 执行
 ```
 
-### 5. 命令格式
+### 5. 命令格式（跨平台）
 ```
-所有Python命令统一格式：
-<项目根>/.venv/bin/python skills/<技能包>/scripts/<管理器>.py <命令> <参数>
+第一步：获取虚拟环境路径
+  eval "$(bash skills/env-checker/scripts/check.sh)"  # macOS/Linux
+  或解析 check.bat 输出                              # Windows
+
+第二步：使用 VENV_PYTHON 执行命令
+  $VENV_PYTHON skills/<技能包>/scripts/<管理器>.py <命令> <参数>
+
+说明：check.sh/check.bat 在 env-checker 技能包中，
+      确保跨平台支持和路径的准确性
 ```
 
 ---

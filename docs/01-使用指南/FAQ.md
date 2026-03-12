@@ -67,13 +67,17 @@ workspace_root: ~/openclaw-data  # 用户主目录
 
 ### Q7: 如何验证项目安装正确？
 
-**A**: 运行验证脚本：
+**A**: 验证环境是否就绪：
 
 ```bash
-./verify.sh
+# macOS/Linux
+bash skills/env-checker/scripts/check.sh
+
+# Windows
+skills\env-checker\scripts\check.bat
 ```
 
-看到 `🎉 所有检查通过！项目已就绪。` 即表示成功。
+看到 `VENV_EXISTS=true` 表示虚拟环境已就绪。
 
 ---
 
@@ -502,7 +506,7 @@ tar -xzf openclaw-prod-01-backup-20260310.tar.gz -C workspace/
 # 在每台服务器上
 git clone <repo-url>
 cd agent-openclaw-assisant
-./verify.sh
+bash skills/env-checker/scripts/setup.sh
 ```
 
 **方案 2: Kubernetes**
@@ -622,7 +626,7 @@ kubectl apply -f skills/openclaw-deploy/templates/kubernetes/deployment.yaml
 1. Fork 项目
 2. 创建功能分支
 3. 编写代码和文档
-4. 运行 `./verify.sh`
+4. 验证环境：`bash skills/env-checker/scripts/check.sh`
 5. 提交 Pull Request
 
 ---
@@ -669,9 +673,9 @@ kubectl apply -f skills/openclaw-deploy/templates/kubernetes/deployment.yaml
    - `docs/快速开始.md` - 入门教程
    - 各技能包的 `reference/` - 详细说明
 
-2. **运行验证**: 
+2. **验证环境**: 
    ```bash
-   ./verify.sh
+   bash skills/env-checker/scripts/check.sh
    ```
 
 3. **查看日志**:
@@ -688,8 +692,8 @@ kubectl apply -f skills/openclaw-deploy/templates/kubernetes/deployment.yaml
 ### 最常用命令
 
 ```bash
-# 验证项目
-./verify.sh
+# 验证环境
+bash skills/env-checker/scripts/check.sh
 
 # 创建实例
 python skills/openclaw-manager/scripts/instance_manager.py create openclaw-prod-01
