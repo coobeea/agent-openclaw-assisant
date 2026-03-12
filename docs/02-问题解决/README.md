@@ -89,7 +89,23 @@ skills\env-checker\scripts\setup.bat
 
 ---
 
-### 1. ⭐⭐⭐⭐⭐ 飞书配对问题
+### 3. ⭐⭐⭐⭐⭐ OpenClaw 配置严格校验（启动失败）🆕
+
+**症状**: 重启实例失败，日志显示 `Config invalid; doctor will run with best-effort config` 或 `Unrecognized key`
+
+**根本原因**: OpenClaw 源码使用 `zod` 进行了极其严格的 Schema 校验（`strict()` 模式）。如果 `openclaw.json` 中存在任何旧的、废弃的或拼写错误的键（例如旧版的 `agents.agents`），进程会直接拒绝启动。
+
+**解决方案**:
+1. 查看日志找到报错的键名。
+2. 修改技能包代码，确保写入的 JSON 结构与 OpenClaw 当前版本的 Schema 完全一致。
+3. **永远不要在配置文件中留存"兼容/废弃"字段**。
+
+**详细文档**:
+- **[经验总结-配置严格校验.md](./经验总结-配置严格校验.md)** 🆕 详细分析与教训
+
+---
+
+### 4. ⭐⭐⭐⭐⭐ 飞书配对问题
 
 **症状**: 飞书bot不回复 / 一直要求配对
 
