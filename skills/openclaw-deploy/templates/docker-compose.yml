@@ -2,19 +2,25 @@ version: '3.8'
 
 services:
   openclaw:
-    build: .
-    container_name: ${INSTANCE_ID:-openclaw-prod-01}
+    build: 
+      context: ${PROJECT_ROOT}/skills/openclaw-deploy/templates
+      dockerfile: Dockerfile
+    container_name: ${INSTANCE_ID}
     ports:
-      - "${PORT:-3000}:3000"
+      - "${PORT}:${PORT}"
     volumes:
       - ${WORKSPACE_PATH}:/workspace
+      # 如果需要挂载本地源码版的 OpenClaw，可以取消注释下面这行
+      # - ${OPENCLAW_SOURCE_PATH}:/usr/local/lib/node_modules/openclaw
     environment:
       - OPENCLAW_LOG_LEVEL=${LOG_LEVEL:-info}
       - NODE_ENV=${NODE_ENV:-production}
+      - PORT=${PORT}
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:${PORT}/health"]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 40s
+
