@@ -43,8 +43,15 @@ npm install -g openclaw@latest
 ```
 
 **选项 B: 从源码构建**
+
 ```bash
+# 方式 1: GitHub（国外）
 git clone https://github.com/openclaw/openclaw.git
+cd openclaw
+pnpm install
+
+# 方式 2: Gitee 镜像（国内，推荐）🇨🇳
+git clone https://gitee.com/618lf/openclaw.git openclaw
 cd openclaw
 pnpm install
 pnpm build

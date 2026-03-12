@@ -88,6 +88,28 @@
 
 ---
 
+## 🌐 网络问题处理
+
+### OpenClaw 镜像地址
+
+**GitHub 官方**（国外）:
+```
+https://github.com/openclaw/openclaw.git
+```
+
+**Gitee 镜像**（国内，推荐）:
+```
+https://gitee.com/618lf/openclaw.git
+```
+
+**AI 规则**:
+- 如果用户在国内或 GitHub 访问慢 → 使用 Gitee 镜像
+- 如果用户明确说"GitHub 很慢" → 切换到 Gitee
+- 如果克隆失败 → 自动尝试另一个镜像
+- 详见：`docs/02-问题解决/网络问题-国内镜像.md`
+
+---
+
 ## 💡 处理示例
 
 ### 用户说："创建一个飞书机器人"

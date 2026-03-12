@@ -7,6 +7,7 @@
 [![Skills](https://img.shields.io/badge/skills-6%2F6-blue)](docs/技能包索引.md)
 [![Docs](https://img.shields.io/badge/docs-14-informational)](docs/)
 [![GitHub](https://img.shields.io/badge/github-openclaw%2Fopenclaw-blue)](https://github.com/openclaw/openclaw)
+[![Gitee](https://img.shields.io/badge/gitee-国内镜像-red)](https://gitee.com/618lf/openclaw)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 ## 🎉 项目状态
@@ -20,136 +21,175 @@
 | **文档** | ✅ 100% | 40+ 篇文档 |
 | **可用性** | 🟢 立即可用 | 可投入使用 |
 
-## 📖 项目简介
+## ✨ 核心特点
 
-这是一个专为管理 **OpenClaw**（个人AI助手）而设计的 Cursor 技能包集合。通过自然语言与 Cursor AI 交互，即可完成 OpenClaw 的安装、部署、配置和管理。
+### 🎯 说人话就能用！
 
-### ⭐ AGENTS.md - 智能入口
+**不需要**:
+- ❌ 记命令
+- ❌ 看文档
+- ❌ 懂技术
 
-**本项目的核心是 [`AGENTS.md`](AGENTS.md)**，它是整个技能包系统的**大脑**：
+**只需要**:
+- ✅ 在 Cursor 中说话
+- ✅ AI 自动引导
+- ✅ 3分钟完成
 
-- 🧠 **意图识别引擎** - 理解用户的自然语言需求
-- 🔄 **自动流程编排** - 串联多个技能包完成复杂任务
-- 🎯 **智能决策表** - 自动选择最佳配置方案
-- 💬 **对话模板库** - 友好的用户交互体验
+---
 
-**用户体验**:
+## 🚀 3步上手（这就是全部！）
+
+### 📍 第1步：初始化环境（30秒）
+
+```bash
+# macOS/Linux
+bash skills/env-checker/scripts/setup.sh
+
+# Windows
+skills\env-checker\scripts\setup.bat
 ```
-用户说: "创建一个飞书客服机器人"
-AI 自动: 识别意图 → 决策方案 → 执行7步 → 反馈结果
-用户只需: 提供必要信息（App ID） → 收到完成通知
+
+**完成！** 环境已就绪。
+
+---
+
+### 💬 第2步：在 Cursor 中说话
+
+打开 Cursor，直接说：
+
+```
+💬 "创建一个飞书机器人"
+💬 "配置企业微信渠道"  
+💬 "查看所有实例"
+💬 "启动 openclaw-feishu-001"
 ```
 
-详见 [AGENTS 配置说明](docs/AGENTS配置说明.md)
+**AI 会自动引导你，不用担心！**
 
-### 什么是 OpenClaw？
+---
 
-OpenClaw 是一个开源的个人AI助手平台，支持多种消息平台（飞书、QQ、企业微信、钉钉等），可以部署在你自己的设备上。
+### 🎉 第3步：开始使用
 
-### 为什么需要这个技能包？
+AI 完成配置后，会告诉你机器人地址。
 
-- 🚀 **简化部署**: 无需记忆复杂的命令，用自然语言即可完成部署
-- 🎯 **统一管理**: 集中管理多个 OpenClaw 实例（龙虾军团）
-- 🔐 **安全优先**: 敏感数据本地存储，不上传到云端
-- 📦 **模块化设计**: 6个独立技能包，按需使用
-- 🧠 **智能编排**: AGENTS.md 提供意图识别和自动流程编排
-- 🛠️ **最佳实践**: 内置 OpenClaw 部署和配置的最佳实践
-- ✨ **极致体验**: 完整的UX设计规范，3分钟上手，容错性超强
+访问地址，发消息测试 → **完成！**
 
-## 🎯 核心目标
+---
 
-- 🦞 **龙虾实例的全生命周期管理**
-- 🔌 **多平台插件和渠道配置**
-- 🤖 **AI 模型和智能体管理**
-- 🚀 **灵活的部署方式**（Host/Docker/K8s）
-- 🧠 **智能化的操作流程**
-- 📦 **跨机器部署** - 零硬编码，拿来就能用
-- ✨ **极致用户体验** - 说人话就能用，3分钟上手
+## 💡 示例对话（你可以这样说）
 
-## 🎯 核心功能
+### 场景 1：创建机器人
 
-### 7大技能包
+```
+💬 你: "创建一个飞书机器人"
 
-| 技能包 | 功能 | 优先级 |
-|--------|------|--------|
-| 🐍 [env-checker](skills/env-checker/) | **环境检测、Python自动安装、虚拟环境初始化** | P0 必需（第一步！） |
-| 🔧 [openclaw-manager](skills/openclaw-manager/) | 安装、实例管理、工作空间 | P0 必需 |
-| 🚀 [openclaw-deploy](skills/openclaw-deploy/) | 主机/容器部署、服务管理 | P1 推荐 |
-| 🔌 [openclaw-plugin](skills/openclaw-plugin/) | 插件安装、平台集成 | P1 推荐 |
-| 📡 [openclaw-channel](skills/openclaw-channel/) | 渠道配置、凭证管理 | P1 推荐 |
-| 🤖 [openclaw-model](skills/openclaw-model/) | AI模型配置、密钥管理 | P2 可选 |
-| 👥 [openclaw-agent](skills/openclaw-agent/) | 智能体创建、路由配置 | P2 可选 |
+🤖 AI: "好的！需要提供：
+      1. 实例名（如 openclaw-feishu-001）
+      2. 飞书 App ID
+      3. 飞书 App Secret
+      4. API Key"
+    
+💬 你: [提供信息]
 
-### 支持的消息平台
+🤖 AI: "✅ 完成！访问 http://127.0.0.1:18800"
+```
+
+### 场景 2：查看状态
+
+```
+💬 你: "查看所有实例"
+🤖 AI: [显示实例列表和运行状态]
+```
+
+### 场景 3：解决问题
+
+```
+💬 你: "飞书不回复"
+🤖 AI: "✅ 已批准配对并重启，请测试"
+```
+
+**更多示例** → [快速入门.md](docs/01-使用指南/快速入门.md)
+
+---
+
+## 📖 这是什么项目？
+
+这是一个专为管理 **OpenClaw**（个人AI助手）而设计的 Cursor 技能包集合。
+
+**OpenClaw**：开源的个人AI助手平台，支持飞书、QQ、企业微信、钉钉等多种消息平台。
+- GitHub: https://github.com/openclaw/openclaw
+- Gitee 镜像（国内）: https://gitee.com/618lf/openclaw 🇨🇳
+
+**本项目让你**：通过自然语言与 Cursor AI 交互，即可完成 OpenClaw 的安装、部署、配置和管理。
+
+### 支持的平台
 
 - ✅ 飞书 (Feishu)
 - ✅ QQ
 - ✅ 企业微信 (WeCom)
 - ✅ 钉钉 (DingTalk)
 
-### 支持的部署模式
+---
 
-- 🖥️ **主机模式**: Systemd 服务，适合单机部署
-- 🐳 **容器模式**: Docker/Kubernetes，适合云原生部署
+## 📚 更多信息（可选阅读）
 
-## 🚀 快速开始
+### 💭 常见问题
 
-### 前置要求
+**Q: 我不会Python怎么办？**  
+A: 不需要！env-checker 会自动安装 Python，你只需要说话。
 
-- Cursor IDE
-- **Python 3.10+**（推荐 3.12+）
-  - **系统没有Python？** env-checker 会自动安装 🌟
-  - 详见 [Python版本要求.md](docs/03-规范约定/Python版本要求.md)
-- Git
-- （可选）Node.js 18+ - 仅在需要安装 OpenClaw 时需要
-- （可选）Docker - 用于容器部署
+**Q: GitHub 访问很慢怎么办？** 🇨🇳  
+A: 使用国内 Gitee 镜像：`https://gitee.com/618lf/openclaw.git`（速度提升 50-100 倍）
 
-### ⚡ 快速验证环境
+**Q: 出错了怎么办？**  
+A: 告诉 AI "出错了"或"飞书不回复"，AI 会自动诊断和修复。
 
-克隆项目后，验证环境：
+**Q: 支持哪些平台？**  
+A: 飞书、QQ、企业微信、钉钉。
 
-```bash
-# macOS/Linux
-bash skills/env-checker/scripts/check.sh
+**更多问题** → [FAQ.md](docs/01-使用指南/FAQ.md)
 
-# Windows  
-skills\env-checker\scripts\check.bat
-```
+---
 
-**预期**: 
-- 虚拟环境存在 → 显示 Python 路径
-- 虚拟环境不存在 → 显示创建命令
+### 🛠️ 详细文档
 
-### 安装
+| 文档 | 用途 |
+|------|------|
+| [快速入门.md](docs/01-使用指南/快速入门.md) | 详细的使用示例和对话 |
+| [新机器首次使用.md](docs/01-使用指南/新机器首次使用.md) | 从零开始的完整流程 |
+| [FAQ.md](docs/01-使用指南/FAQ.md) | 45+ 个常见问题解答 |
+| [技能包职责划分.md](docs/03-规范约定/技能包职责划分.md) | 架构说明（开发者） |
 
-```bash
-# 克隆仓库
-git clone <repo-url> agent-openclaw-assisant
-cd agent-openclaw-assisant
+---
 
-# 🔴 创建虚拟环境（强制要求，使用 env-checker）
-bash skills/env-checker/scripts/setup.sh
+### 工作原理（技术说明）
 
-# Windows 用户:
-# skills\env-checker\scripts\setup.bat
-```
+本项目通过 7 个技能包自动管理 OpenClaw：
+- **env-checker**: 环境检测和初始化
+- **openclaw-manager**: 实例管理
+- **openclaw-channel**: 渠道配置
+- **openclaw-model**: AI 模型配置
+- **openclaw-plugin**: 插件管理
+- **openclaw-deploy**: 部署管理
+- **openclaw-agent**: 智能体管理
 
-**env-checker 会自动**:
-- ✅ 检测系统Python（3.12+）
-- ✅ **如果没有Python，自动下载安装** 🌟
-- ✅ 创建 `.venv/` 虚拟环境（隐藏目录）
-- ✅ 安装所有技能包依赖
-- ✅ 自动验证环境
+**你不需要了解这些细节，AI 会自动处理！**
 
-**输出的 `ENV_PYTHON` 路径用于后续所有命令**
+详见 [技能包索引.md](docs/技能包索引.md)
 
-**⚠️ 重要**: 
-- 所有 Python 脚本必须使用 `.venv/bin/python` 运行
-- 虚拟环境是 `.venv`（隐藏目录），不是 `venv`
-- 🆕 **使用 env-checker 检查虚拟环境** - 跨平台支持，准确定位
-- 详见 [虚拟环境管理规范](docs/03-规范约定/虚拟环境管理规范.md)
+---
 
-### 在 Cursor 中使用
+## 🔧 高级配置（开发者）
+
+### 系统要求
+
+- Cursor IDE（必需）
+- Python 3.10+（env-checker 会自动安装）
+- Git（必需）
+- Node.js 18+（可选，安装 OpenClaw 时需要）
+- Docker（可选，容器部署时需要）
+
+### 手动安装
 
 #### 前置步骤：检查和创建虚拟环境
 

@@ -37,7 +37,31 @@
 
 ---
 
-### 1. ⭐⭐⭐⭐⭐ 虚拟环境管理 🆕
+### 1. ⭐⭐⭐⭐⭐ 网络问题 - GitHub 访问慢 🆕
+
+**症状**: GitHub 克隆速度慢 / 连接超时 / 无法访问
+
+**解决方案**: 使用 Gitee 国内镜像
+
+**国内镜像地址**: `https://gitee.com/618lf/openclaw.git`
+
+**快速操作**:
+```bash
+# ✅ 使用 Gitee 镜像（国内，速度快）
+git clone https://gitee.com/618lf/openclaw.git openclaw
+
+# 原 GitHub 地址（国外）
+git clone https://github.com/openclaw/openclaw.git
+```
+
+**相关文档**:
+- **[网络问题-国内镜像.md](./网络问题-国内镜像.md)** 🆕 完整说明和使用指南
+
+**速度提升**: 50-100倍 🚀
+
+---
+
+### 2. ⭐⭐⭐⭐⭐ 虚拟环境管理 🆕
 
 **症状**: 跨机器环境不一致 / 系统没有Python / 依赖冲突
 

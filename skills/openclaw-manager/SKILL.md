@@ -294,8 +294,13 @@ cp templates/env.template workspace/openclaw-prod-01/.env
 - OpenClaw 的工作空间结构
 
 参考文档：
-- [OpenClaw GitHub](https://github.com/openclaw/openclaw)
+- [OpenClaw GitHub](https://github.com/openclaw/openclaw)（国外）
+- [OpenClaw Gitee 镜像](https://gitee.com/618lf/openclaw)（国内，推荐）🇨🇳
+- [网络问题 - 国内镜像说明](../../docs/02-问题解决/网络问题-国内镜像.md)
 - [技术调研文档](../../docs/技术调研.md)（待创建）
+
+**国内用户推荐**：使用 Gitee 镜像，速度提升 50-100 倍！  
+镜像地址：`https://gitee.com/618lf/openclaw.git`
 
 ---
 

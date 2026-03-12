@@ -26,7 +26,28 @@
 
 ## 安装和配置
 
-### Q4: 必须在 Cursor 中使用吗？
+### Q4: GitHub 访问很慢或无法访问怎么办？🇨🇳
+
+**A**: 使用 Gitee 国内镜像
+
+**镜像地址**: `https://gitee.com/618lf/openclaw.git`
+
+**使用方法**:
+```bash
+# 使用 Gitee 镜像（国内，推荐）
+git clone https://gitee.com/618lf/openclaw.git openclaw
+
+# 原 GitHub 地址（国外）
+git clone https://github.com/openclaw/openclaw.git
+```
+
+**速度提升**: 50-100倍 🚀
+
+**详细说明** → [网络问题-国内镜像.md](../02-问题解决/网络问题-国内镜像.md)
+
+---
+
+### Q5: 必须在 Cursor 中使用吗？
 
 **A**: 不是。有两种使用方式：
 
