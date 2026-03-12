@@ -1,6 +1,6 @@
 # OpenClaw 管理技能包集合
 
-> 为 Cursor IDE 打造的 OpenClaw 管理技能包仓库，提供完整的 OpenClaw 实例生命周期管理能力。
+> 为 Cursor / Claude Desktop / Coder / Trae 打造的 OpenClaw 管理技能包仓库，提供完整的 OpenClaw 实例生命周期管理能力。
 
 [![Version](https://img.shields.io/badge/version-v1.0.0-brightgreen)](docs/CHANGELOG.md)
 [![Status](https://img.shields.io/badge/status-✅%20可用-success)](docs/STATUS.md)
@@ -31,7 +31,7 @@
 - ❌ 懂技术
 
 **只需要**:
-- ✅ 在 Cursor 中说话
+- ✅ 在 AI IDE 中说话（Cursor / Claude Desktop / Coder / Trea）
 - ✅ AI 自动引导
 - ✅ 3分钟完成
 
@@ -53,9 +53,9 @@ skills\env-checker\scripts\setup.bat
 
 ---
 
-### 💬 第2步：在 Cursor 中说话
+### 💬 第2步：在 AI IDE 中说话
 
-打开 Cursor，直接说：
+打开 Cursor / Claude Desktop / Coder / Trea，直接说：
 
 ```
 💬 "创建一个飞书机器人"
@@ -114,13 +114,13 @@ AI 完成配置后，会告诉你机器人地址。
 
 ## 📖 这是什么项目？
 
-这是一个专为管理 **OpenClaw**（个人AI助手）而设计的 Cursor 技能包集合。
+这是一个专为管理 **OpenClaw**（个人AI助手）而设计的 AI IDE 技能包集合，支持 Cursor、Claude Desktop、Coder 和 Trea。
 
 **OpenClaw**：开源的个人AI助手平台，支持飞书、QQ、企业微信、钉钉等多种消息平台。
 - GitHub: https://github.com/openclaw/openclaw
 - Gitee 镜像（国内）: https://gitee.com/618lf/openclaw 🇨🇳
 
-**本项目让你**：通过自然语言与 Cursor AI 交互，即可完成 OpenClaw 的安装、部署、配置和管理。
+**本项目让你**：通过自然语言与 AI IDE 交互（Cursor / Claude Desktop / Coder / Trea），即可完成 OpenClaw 的安装、部署、配置和管理。
 
 ### 支持的平台
 
@@ -183,7 +183,7 @@ A: 飞书、QQ、企业微信、钉钉。
 
 ### 系统要求
 
-- Cursor IDE（必需）
+- AI IDE（Cursor / Claude Desktop / Coder / Trea，任选其一）
 - Python 3.10+（env-checker 会自动安装）
 - Git（必需）
 - Node.js 18+（可选，安装 OpenClaw 时需要）
@@ -228,8 +228,8 @@ skills\env-checker\scripts\setup.bat
 
 #### 方式一：作为项目技能包（推荐）
 
-1. 在 Cursor 中打开此项目
-2. Cursor 会自动识别 `skills/` 目录下的所有技能包
+1. 在 AI IDE（Cursor / Claude Desktop / Coder / Trea）中打开此项目
+2. AI IDE 会自动识别 `.cursor/skills/`、`.claude/skills/`、`.coder/skills/` 或 `.trae/skills/` 目录下的所有技能包
 3. 通过自然语言与 AI 交互即可使用
 
 ```
@@ -326,9 +326,13 @@ agent-openclaw-assisant/
 ├── workspace/                # 实例工作空间（不提交，由OpenClaw管理）
 ├── shared/                   # 共享资源
 ├── tests/                    # 测试用例
-├── .cursor/                 # Cursor技能包激活
+├── .cursor/                 # Cursor 技能包激活（软链接）
+├── .claude/                 # Claude Desktop 技能包激活（软链接）
+├── .coder/                  # Coder 技能包激活（软链接）
+├── .trae/                   # Trae 技能包激活（软链接）
 ├── .gitignore               # Git忽略规则
-├── AGENTS.md                # Cursor智能助手配置（核心入口）
+├── AGENTS.md                # AI 智能助手配置（核心入口）
+├── CLAUDE.md                # AI 智能助手配置（AGENTS.md 副本）
 └── README.md                # 本文件
 ```
 

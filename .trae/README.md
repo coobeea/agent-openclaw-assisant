@@ -1,6 +1,6 @@
-# Cursor 技能包支持
+# Trae 技能包支持
 
-本目录为 Cursor IDE 提供 OpenClaw 管理技能包支持。
+本目录为 Trae 提供 OpenClaw 管理技能包支持。
 
 ## 🎯 多平台支持
 
@@ -11,12 +11,12 @@ OpenClaw 管理助手支持以下 AI 平台：
 | **Cursor** | `.cursor/skills/` | ✅ 已激活 |
 | **Claude Desktop** | `.claude/skills/` | ✅ 已激活 |
 | **Coder** | `.coder/skills/` | ✅ 已激活 |
-| **Trea** | `.trae/skills/` | ✅ 已激活 |
+| **Trae** | `.trae/skills/` | ✅ 已激活 |
 
 ## 📂 目录结构
 
 ```
-.cursor/
+.trae/
 ├── README.md           ← 本文件（平台说明）
 └── skills/             ← 技能包软链接目录
     ├── README.md       ← 技能包管理说明
@@ -30,10 +30,10 @@ OpenClaw 管理助手支持以下 AI 平台：
 
 ## 🚀 快速使用
 
-### 在 Cursor 中使用
+### 在 Trae 中使用
 
-1. 打开 Cursor IDE
-2. 打开本项目目录
+1. 打开 Trae
+2. 连接到本项目目录
 3. 直接说话：
 
 ```
@@ -42,7 +42,7 @@ OpenClaw 管理助手支持以下 AI 平台：
 "初始化模型配置"
 ```
 
-Cursor 会自动识别并使用这些技能包。
+Trae 会自动识别并使用这些技能包。
 
 ## 📋 可用技能包
 
@@ -61,7 +61,7 @@ Cursor 会自动识别并使用这些技能包。
 
 所有技能包的源文件位于 `../../skills/` 目录。
 
-`.cursor/skills/` 目录中的文件都是**软链接**，指向源文件。
+`.trae/skills/` 目录中的文件都是**软链接**，指向源文件。
 
 **修改技能包**: 请编辑 `skills/` 目录下的源文件，所有平台会自动同步。
 
