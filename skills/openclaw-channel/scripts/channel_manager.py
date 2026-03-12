@@ -83,7 +83,7 @@ class ChannelManager:
         
         # 如果提供了实例名称，则直接写入实例的 openclaw.json
         if instance_name:
-            instance_dir = self.workspace_dir / 'lobsters' / instance_name
+            instance_dir = self.pm.get_instance_path(instance_name)
             if not instance_dir.exists():
                 print(f"⚠️ 警告: 实例目录不存在 {instance_dir}，跳过写入实例配置")
             else:
@@ -99,14 +99,31 @@ class ChannelManager:
                             
                         # 写入飞书配置
                         if platform == 'feishu':
-                            instance_config['channels']['feishu'] = {
-                                'enabled': True,
-                                'appId': config.get('app_id', ''),
-                                'appSecret': config.get('app_secret', ''),
-                                'connectionMode': 'websocket',
-                                'dmPolicy': 'pairing',
-                                'groupPolicy': 'open'
-                            }
+                            account_id = config.get('account_id')
+                            if account_id:
+                                # 多账号模式
+                                if 'feishu' not in instance_config['channels']:
+                                    instance_config['channels']['feishu'] = {'enabled': True, 'accounts': {}}
+                                elif 'accounts' not in instance_config['channels']['feishu']:
+                                    instance_config['channels']['feishu']['accounts'] = {}
+                                    
+                                instance_config['channels']['feishu']['accounts'][account_id] = {
+                                    'appId': config.get('app_id', ''),
+                                    'appSecret': config.get('app_secret', ''),
+                                    'connectionMode': 'websocket',
+                                    'dmPolicy': 'pairing',
+                                    'groupPolicy': 'open'
+                                }
+                            else:
+                                # 默认单账号模式
+                                instance_config['channels']['feishu'] = {
+                                    'enabled': True,
+                                    'appId': config.get('app_id', ''),
+                                    'appSecret': config.get('app_secret', ''),
+                                    'connectionMode': 'websocket',
+                                    'dmPolicy': 'pairing',
+                                    'groupPolicy': 'open'
+                                }
                             
                         # 写入其他平台配置(预留)
                         elif platform == 'qq':
@@ -317,8 +334,11 @@ class ChannelManager:
             print(f"❌ 清空配对请求失败: {e}")
             return False
         
+        # 获取账户ID
+        account_id = request.get('meta', {}).get('accountId', 'default')
+        
         # 3. 添加到 allowFrom
-        allow_from_file = instance_path / 'credentials' / f'{platform}-default-allowFrom.json'
+        allow_from_file = instance_path / 'credentials' / f'{platform}-{account_id}-allowFrom.json'
         
         # 读取现有的 allowFrom（如果存在）
         if allow_from_file.exists():
@@ -415,6 +435,7 @@ def main():
     add_parser.add_argument('platform', help='平台类型（feishu/qq/wecom/dingtalk）')
     add_parser.add_argument('--app-id', required=True, help='应用 ID')
     add_parser.add_argument('--app-secret', required=True, help='应用密钥')
+    add_parser.add_argument('--account-id', help='账号ID (多账号场景使用)')
     add_parser.add_argument('--instance', help='实例名称（可选，如果提供则直接写入实例配置）')
     
     # list 命令
@@ -446,6 +467,8 @@ def main():
                 'app_id': args.app_id,
                 'app_secret': args.app_secret
             }
+            if hasattr(args, 'account_id') and args.account_id:
+                config['account_id'] = args.account_id
             manager.add(args.name, args.platform, config, getattr(args, 'instance', None))
         elif args.command == 'list':
             manager.list()
