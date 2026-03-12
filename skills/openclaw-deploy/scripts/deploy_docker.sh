@@ -53,6 +53,35 @@ cd "$TEMPLATES_DIR"
 echo "🚀 构建并启动容器..."
 docker-compose up -d --build
 
+# 更新 agents.jsonl 中的 deploy_mode
+if [ -f "$AGENTS_DB" ]; then
+    echo "📝 更新实例部署模式为 docker..."
+    # 使用 Python 脚本更新 JSONL 文件
+    python3 -c "
+import json
+import sys
+
+db_path = '$AGENTS_DB'
+instance_id = '$INSTANCE_ID'
+
+lines = []
+with open(db_path, 'r') as f:
+    lines = f.readlines()
+
+with open(db_path, 'w') as f:
+    for line in lines:
+        if not line.strip():
+            continue
+        try:
+            data = json.loads(line)
+            if data.get('id') == instance_id or data.get('name') == instance_id:
+                data['deploy_mode'] = 'docker'
+            f.write(json.dumps(data, ensure_ascii=False) + '\n')
+        except:
+            f.write(line)
+"
+fi
+
 echo "✅ 部署完成"
 echo "查看状态: docker ps | grep $INSTANCE_ID"
 echo "查看日志: docker logs -f $INSTANCE_ID"

@@ -171,7 +171,32 @@ class InstanceManager:
             print(f"❌ 实例不存在: {name}")
             return None
         
-        # 2. 检查是否已经运行
+        # 检查是否是 Docker 部署模式
+        deploy_mode = instance_info.get('deploy_mode', 'host')
+        if deploy_mode == 'docker':
+            print(f"🐳 检测到 Docker 部署模式")
+            try:
+                # 检查容器是否已经运行
+                result = subprocess.run(['docker', 'ps', '-q', '-f', f'name={name}'], 
+                                     capture_output=True, text=True)
+                if result.stdout.strip():
+                    print(f"⚠️  容器已经在运行中")
+                    return 1
+                
+                # 启动容器
+                print(f"⏳ 正在启动容器: {name}...")
+                subprocess.run(['docker', 'start', name], check=True)
+                print(f"✅ 容器已启动")
+                
+                # 更新状态
+                instance_info['status'] = 'running'
+                self._update_instance_info(name, instance_info)
+                return 1
+            except Exception as e:
+                print(f"❌ 启动容器失败: {e}")
+                return None
+        
+        # 2. 检查是否已经运行 (Host 模式)
         if instance_info.get('status') == 'running':
             pid = instance_info.get('process_pid')
             if pid and self._is_process_alive(pid):
@@ -277,8 +302,25 @@ class InstanceManager:
         if not instance_info:
             print(f"❌ 实例不存在: {name}")
             return False
+            
+        # 检查是否是 Docker 部署模式
+        deploy_mode = instance_info.get('deploy_mode', 'host')
+        if deploy_mode == 'docker':
+            print(f"🐳 检测到 Docker 部署模式")
+            try:
+                print(f"⏳ 正在停止容器: {name}...")
+                subprocess.run(['docker', 'stop', name], check=True)
+                print(f"✅ 容器已停止")
+                
+                # 更新状态
+                instance_info['status'] = 'stopped'
+                self._update_instance_info(name, instance_info)
+                return True
+            except Exception as e:
+                print(f"❌ 停止容器失败: {e}")
+                return False
         
-        # 2. 获取 PID
+        # 2. 获取 PID (Host 模式)
         pid = instance_info.get('process_pid')
         if not pid:
             print(f"⚠️  实例未运行（无PID记录）")
@@ -362,16 +404,38 @@ class InstanceManager:
         if not instance_info:
             print(f"❌ 实例不存在: {name}")
             return None
+            
+        deploy_mode = instance_info.get('deploy_mode', 'host')
         
-        # 检查进程状态
-        pid = instance_info.get('process_pid')
-        process_alive = self._is_process_alive(pid) if pid else False
-        
-        # 如果PID记录与实际不符，更新状态
-        if pid and not process_alive:
-            instance_info['status'] = 'stopped'
-            instance_info['process_pid'] = None
-            self._update_instance_info(name, instance_info)
+        if deploy_mode == 'docker':
+            try:
+                # 检查容器状态
+                result = subprocess.run(['docker', 'inspect', '-f', '{{.State.Status}}', name], 
+                                     capture_output=True, text=True)
+                container_status = result.stdout.strip()
+                
+                if container_status == 'running':
+                    process_alive = True
+                    instance_info['status'] = 'running'
+                else:
+                    process_alive = False
+                    instance_info['status'] = 'stopped'
+                    
+                self._update_instance_info(name, instance_info)
+            except Exception:
+                process_alive = False
+                instance_info['status'] = 'stopped'
+                self._update_instance_info(name, instance_info)
+        else:
+            # 检查进程状态 (Host 模式)
+            pid = instance_info.get('process_pid')
+            process_alive = self._is_process_alive(pid) if pid else False
+            
+            # 如果PID记录与实际不符，更新状态
+            if pid and not process_alive:
+                instance_info['status'] = 'stopped'
+                instance_info['process_pid'] = None
+                self._update_instance_info(name, instance_info)
         
         # 显示状态
         print(f"名称: {name}")
@@ -613,7 +677,11 @@ class InstanceManager:
                     try:
                         info = json.loads(line)
                         if info.get('name') == name:
-                            instances.append(new_info)
+                            # 确保 deploy_mode 被保存
+                            if 'deploy_mode' in new_info:
+                                info['deploy_mode'] = new_info['deploy_mode']
+                            info.update(new_info)
+                            instances.append(info)
                         else:
                             instances.append(info)
                     except:
