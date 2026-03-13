@@ -14,7 +14,7 @@ echo "🐳 Docker 模式部署: $INSTANCE_ID"
 
 # 获取项目根目录
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(cd "${SCRIPT_DIR}/../../../.." && pwd)"
+PROJECT_ROOT="$(cd "${SCRIPT_DIR}/../../.." && pwd)"
 TEMPLATES_DIR="${PROJECT_ROOT}/skills/openclaw-deploy/templates"
 WORKSPACE_PATH="${PROJECT_ROOT}/workspace/lobsters/${INSTANCE_ID}"
 
@@ -30,7 +30,7 @@ AGENTS_DB="${PROJECT_ROOT}/workspace/data/agents.jsonl"
 PORT=3000
 if [ -f "$AGENTS_DB" ]; then
     # 简单的 grep 和 awk 提取端口
-    FOUND_PORT=$(grep "\"id\": \"$INSTANCE_ID\"" "$AGENTS_DB" | grep -o '"gateway_port": [0-9]*' | awk '{print $2}')
+    FOUND_PORT=$(grep "\"name\": \"$INSTANCE_ID\"" "$AGENTS_DB" | grep -o '"gateway_port": [0-9]*' | awk '{print $2}' || true)
     if [ -n "$FOUND_PORT" ]; then
         PORT=$FOUND_PORT
     fi
@@ -46,6 +46,13 @@ export INSTANCE_ID=$INSTANCE_ID
 export PORT=$PORT
 export WORKSPACE_PATH=$WORKSPACE_PATH
 export PROJECT_ROOT=$PROJECT_ROOT
+
+# 配置 Docker 构建时的代理 (使用宿主机 IP)
+# 获取宿主机 IP (macOS)
+HOST_IP=$(ipconfig getifaddr en0 2>/dev/null || ipconfig getifaddr en1 2>/dev/null || echo "127.0.0.1")
+export HTTP_PROXY=http://${HOST_IP}:7890
+export HTTPS_PROXY=http://${HOST_IP}:7890
+export NO_PROXY=localhost,127.0.0.1
 
 # 切换到模板目录执行 docker-compose
 cd "$TEMPLATES_DIR"

@@ -5,17 +5,23 @@ services:
     build: 
       context: ${PROJECT_ROOT}/skills/openclaw-deploy/templates
       dockerfile: Dockerfile
+      args:
+        - HTTP_PROXY=${HTTP_PROXY}
+        - HTTPS_PROXY=${HTTPS_PROXY}
+        - NO_PROXY=${NO_PROXY}
     container_name: ${INSTANCE_ID}
     ports:
       - "${PORT}:${PORT}"
     volumes:
       - ${WORKSPACE_PATH}:/workspace
-      # 如果需要挂载本地源码版的 OpenClaw，可以取消注释下面这行
-      # - ${OPENCLAW_SOURCE_PATH}:/usr/local/lib/node_modules/openclaw
+      # 挂载本地源码版的 OpenClaw
+      - ${PROJECT_ROOT}/../../git_agents/openclaw:/workspace/openclaw
     environment:
       - OPENCLAW_LOG_LEVEL=${LOG_LEVEL:-info}
       - NODE_ENV=${NODE_ENV:-production}
       - PORT=${PORT}
+      - OPENCLAW_STATE_DIR=/workspace
+      - OPENCLAW_CONFIG_PATH=/workspace/.openclaw/openclaw.json
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:${PORT}/health"]

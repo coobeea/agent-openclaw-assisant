@@ -406,6 +406,7 @@ class InstanceManager:
             return None
             
         deploy_mode = instance_info.get('deploy_mode', 'host')
+        pid = None
         
         if deploy_mode == 'docker':
             try:
