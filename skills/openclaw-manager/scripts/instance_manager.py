@@ -122,6 +122,15 @@ class InstanceManager:
         else:
             print(f"⚠️  模型配置同步失败，可能影响 AI 功能")
         
+        # 6.6. 应用激进模式配置（零门槛，快速上手）
+        print(f"\n⏳ 应用激进模式配置（零门槛）...")
+        if self._apply_aggressive_config(instance_path, port):
+            print(f"✅ 激进模式配置已应用")
+            print(f"   - Control UI: 无需认证即可访问")
+            print(f"   - 渠道策略: 开放模式（无需配对）")
+        else:
+            print(f"⚠️  激进模式配置失败，使用默认配置")
+        
         # 7. 记录实例信息
         instance_info = {
             "name": name,
@@ -859,6 +868,78 @@ class InstanceManager:
             return True
         except Exception as e:
             print(f"⚠️  同步模型配置失败: {e}")
+            return False
+    
+    def _apply_aggressive_config(self, instance_path: Path, port: int) -> bool:
+        """
+        应用激进模式配置（零门槛配置）
+        
+        激进模式特性:
+        1. Control UI: 完全无需认证 (dangerouslyDisableDeviceAuth=true + auth.mode=none)
+        2. 渠道策略: 开放模式，无需配对 (dmPolicy=open, groupPolicy=open)
+        3. Gateway: loopback 模式（容器/Docker 部署时使用 Nginx 代理到外部）
+        
+        注意：
+        - 主机部署: 使用 loopback 仅本机访问，完全无认证
+        - Docker 部署: 使用 loopback + Nginx 代理，对外开放，完全无认证
+        
+        Args:
+            instance_path: 实例路径
+            port: 网关端口（主机模式使用；Docker 模式下 OpenClaw 固定用 3000）
+        
+        Returns:
+            是否成功
+        """
+        config_file = instance_path / '.openclaw' / 'openclaw.json'
+        
+        if not config_file.exists():
+            return False
+        
+        try:
+            # 读取配置
+            with open(config_file, 'r') as f:
+                config = json.load(f)
+            
+            # 1. Gateway 配置 - 激进模式（loopback + 无认证）
+            if 'gateway' not in config:
+                config['gateway'] = {}
+            
+            # loopback 模式（127.0.0.1）- 唯一支持完全无认证的模式
+            config['gateway']['bind'] = 'loopback'
+            # 端口设置：主机模式使用传入的端口，Docker 模式使用 3000（由 Nginx 代理）
+            config['gateway']['port'] = port
+            
+            # Control UI 配置 - 禁用设备认证
+            if 'controlUi' not in config['gateway']:
+                config['gateway']['controlUi'] = {}
+            config['gateway']['controlUi']['dangerouslyDisableDeviceAuth'] = True
+            
+            # 完全无认证
+            if 'auth' not in config['gateway']:
+                config['gateway']['auth'] = {}
+            config['gateway']['auth']['mode'] = 'none'
+            
+            # 3. 渠道策略 - 开放模式（无需配对）
+            if 'channels' not in config:
+                config['channels'] = {}
+            
+            # 遍历所有渠道，设置为开放模式
+            for channel_type in ['feishu', 'qq', 'wecom', 'dingtalk']:
+                if channel_type in config['channels']:
+                    accounts = config['channels'][channel_type]
+                    if isinstance(accounts, dict):
+                        for account_id, account_config in accounts.items():
+                            if isinstance(account_config, dict):
+                                account_config['dmPolicy'] = 'open'
+                                account_config['groupPolicy'] = 'open'
+            
+            # 保存配置
+            with open(config_file, 'w') as f:
+                json.dump(config, f, indent=2, ensure_ascii=False)
+            
+            return True
+        except Exception as e:
+            print(f"⚠️  应用激进模式配置失败: {e}")
             return False
     
     def _is_process_alive(self, pid: Optional[int]) -> bool:

@@ -111,17 +111,17 @@ class ChannelManager:
                                     'appId': config.get('app_id', ''),
                                     'appSecret': config.get('app_secret', ''),
                                     'connectionMode': 'websocket',
-                                    'dmPolicy': 'pairing',
+                                    'dmPolicy': 'open',
                                     'groupPolicy': 'open'
                                 }
                             else:
-                                # 默认单账号模式
+                                # 默认单账号模式（激进模式：无需配对）
                                 instance_config['channels']['feishu'] = {
                                     'enabled': True,
                                     'appId': config.get('app_id', ''),
                                     'appSecret': config.get('app_secret', ''),
                                     'connectionMode': 'websocket',
-                                    'dmPolicy': 'pairing',
+                                    'dmPolicy': 'open',
                                     'groupPolicy': 'open'
                                 }
                             

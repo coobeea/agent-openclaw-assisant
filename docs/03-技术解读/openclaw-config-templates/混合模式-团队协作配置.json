@@ -1,0 +1,128 @@
+{
+  "$schema": "https://openclaw.app/schema/config.json",
+  "meta": {
+    "lastTouchedVersion": "2026.3.11",
+    "lastTouchedAt": "2026-03-12T00:00:00.000Z"
+  },
+  "models": {
+    "providers": {
+      "bailian": {
+        "baseUrl": "https://coding.dashscope.aliyuncs.com/v1",
+        "apiKey": "你的百炼API-Key",
+        "api": "openai-completions",
+        "models": [
+          {
+            "id": "qwen3.5-plus",
+            "name": "通义千问 3.5 Plus",
+            "reasoning": false,
+            "input": ["text", "image"],
+            "cost": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0
+            },
+            "contextWindow": 1000000,
+            "maxTokens": 65536
+          },
+          {
+            "id": "qwen3-coder-plus",
+            "name": "通义千问编程版",
+            "reasoning": false,
+            "input": ["text"],
+            "contextWindow": 131072,
+            "maxTokens": 65536
+          }
+        ]
+      }
+    }
+  },
+  "agents": {
+    "defaults": {
+      "model": {
+        "primary": "bailian/qwen3.5-plus"
+      },
+      "models": {
+        "bailian/qwen3.5-plus": {},
+        "bailian/qwen3-coder-plus": {
+          "alias": "coder"
+        }
+      },
+      "compaction": {
+        "mode": "safeguard"
+      }
+    },
+    "list": [
+      {
+        "id": "general-agent",
+        "name": "通用助手",
+        "system": "你是一个友好的AI助手，帮助用户解答各种问题。"
+      },
+      {
+        "id": "coding-agent",
+        "name": "编程助手",
+        "model": {
+          "primary": "bailian/qwen3-coder-plus"
+        },
+        "system": "你是一个专业的编程助手，擅长代码编写、调试和优化。"
+      }
+    ]
+  },
+  "commands": {
+    "native": "auto",
+    "nativeSkills": "auto",
+    "restart": true,
+    "ownerDisplay": "raw"
+  },
+  "gateway": {
+    "mode": "local",
+    "bind": "lan",
+    "auth": {
+      "mode": "token",
+      "token": "team-shared-token-here"
+    },
+    "controlUi": {
+      "enabled": true,
+      "dangerouslyDisableDeviceAuth": true
+    }
+  },
+  "channels": {
+    "feishu": {
+      "appId": "你的飞书AppID",
+      "appSecret": "你的飞书AppSecret",
+      "enabled": true,
+      "streaming": false,
+      "dmPolicy": "open",
+      "groupPolicy": "pairing"
+    }
+  },
+  "plugins": {
+    "entries": {
+      "feishu": {
+        "enabled": true
+      }
+    }
+  },
+  "bindings": [
+    {
+      "agentId": "general-agent",
+      "match": {
+        "channel": "feishu",
+        "peer": {
+          "kind": "direct"
+        }
+      },
+      "comment": "飞书私聊 → 通用助手"
+    },
+    {
+      "agentId": "coding-agent",
+      "match": {
+        "channel": "feishu",
+        "peer": {
+          "kind": "group"
+        }
+      },
+      "comment": "飞书群聊 → 编程助手"
+    }
+  ]
+}

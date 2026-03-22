@@ -24,7 +24,13 @@
    - [plugins - 插件配置](#plugins---插件配置)
    - [bindings - 路由绑定](#bindings---路由绑定)
 4. [高级配置](#高级配置)
-5. [实战示例](#实战示例)
+5. [配置模板文件](#配置模板文件) ⭐ 新增
+6. [实战示例](#实战示例)
+7. [配置模式对比](#配置模式对比) ⭐ 新增
+8. [快速切换配置模式](#快速切换配置模式) ⭐ 新增
+9. [常见问题 FAQ](#常见问题-faq) ⭐ 新增
+10. [配置验证](#配置验证)
+11. [配置最佳实践](#配置最佳实践)
 
 ---
 
@@ -924,6 +930,34 @@ OpenClaw 支持多种消息渠道（飞书、QQ、企微、钉钉等），每个
   - `true`: 智能体响应时实时推送（用户体验更好）
   - `false`: 等待完整响应后一次性推送
 
+**`dmPolicy`** (可选，默认: `"pairing"`)
+- **类型**: `"open"` 或 `"pairing"`
+- **说明**: 私聊（Direct Message）访问策略
+  - `open`: 开放模式
+    - ✅ 任何人都可以直接私聊机器人
+    - ✅ 无需管理员批准
+    - ⚠️ 可能产生意外的 API 费用
+  - `pairing`: 配对模式
+    - 🔒 用户首次私聊需要管理员批准
+    - ✅ 控制谁可以使用
+    - 批准方式：`python instance_manager.py approve-pairing <实例名> feishu`
+- **推荐**：
+  - 开发/测试环境：使用 `"open"`
+  - 生产环境：使用 `"pairing"`
+
+**`groupPolicy`** (可选，默认: `"open"`)
+- **类型**: `"open"` 或 `"pairing"`
+- **说明**: 群聊访问策略
+  - `open`: 开放模式
+    - ✅ 机器人加入任何群聊都会自动响应
+    - ⚠️ 可能被拉入大量无关群聊
+  - `pairing`: 配对模式
+    - 🔒 每个群聊需要管理员批准后才响应
+    - ✅ 控制机器人在哪些群使用
+- **推荐**：
+  - 个人/小团队：使用 `"open"`
+  - 大型组织：使用 `"pairing"`
+
 **`accounts`** (可选)
 - **类型**: `Record<string, AccountConfig>` 对象字典
 - **说明**: 多账号配置
@@ -952,15 +986,17 @@ OpenClaw 支持多种消息渠道（飞书、QQ、企微、钉钉等），每个
 
 **`dmPolicy`** (可选，默认: `"pairing"`)
 - **类型**: `"open"` 或 `"pairing"`
-- **说明**: 私聊（Direct Message）策略
-  - `open`: 开放模式（任何人都可以私聊机器人）
+- **说明**: 该账号的私聊（Direct Message）策略
+  - `open`: 开放模式（任何人都可以私聊此机器人）
   - `pairing`: 配对模式（需要管理员批准才能私聊）
+- **继承**: 如果不指定，会继承渠道级别的 `dmPolicy`
 
 **`groupPolicy`** (可选，默认: `"open"`)
 - **类型**: `"open"` 或 `"pairing"`
-- **说明**: 群聊策略
+- **说明**: 该账号的群聊策略
   - `open`: 开放模式（机器人加入任何群聊都会响应）
   - `pairing`: 配对模式（需要批准才能在群聊中使用）
+- **继承**: 如果不指定，会继承渠道级别的 `groupPolicy`
 
 #### 实际示例
 
@@ -1403,9 +1439,179 @@ SecretRefSchema = z.discriminatedUnion("source", [
 
 ---
 
+## 配置模板文件
+
+为了方便使用，我们提供了三个开箱即用的配置模板：
+
+📄 **激进模式配置**：`docs/03-技术解读/openclaw-config-templates/激进模式-零门槛配置.json`
+- 无需认证即可访问
+- 飞书无需配对
+- 适合开发测试
+
+📄 **混合模式配置**：`docs/03-技术解读/openclaw-config-templates/混合模式-团队协作配置.json`
+- 需要 Token 访问
+- 私聊开放，群聊需配对
+- 适合小团队
+
+📄 **安全模式配置**：`docs/03-技术解读/openclaw-config-templates/安全模式-生产环境配置.json`
+- Token 认证 + 设备绑定
+- 所有渠道需配对
+- 适合生产环境
+
+**使用方法**：
+1. 复制对应模板文件内容
+2. 替换其中的占位符（API Key、App ID 等）
+3. 保存为实例的 `.openclaw/openclaw.json`
+4. 重启实例
+
+---
+
 ## 实战示例
 
-### 示例 1：最小化配置
+### 示例 1：激进模式配置（最简化、零门槛）
+
+**适用场景**：
+- ✅ 开发测试环境
+- ✅ 内网环境
+- ✅ 快速上手学习
+- ⚠️ **不适用于生产环境**
+
+**特点**：
+- **完全无需认证**（auth.mode=none）
+- 无需任何 Token
+- 渠道无需配对（开放模式）
+- 禁用设备认证
+- 真正的零门槛
+
+**技术方案**：
+- **主机模式**：loopback 绑定，仅本机访问
+- **Docker 模式**：loopback + Nginx 代理，局域网可访问
+
+**访问方式**：
+- 主机模式：`http://127.0.0.1:18800/`
+- Docker 模式：`http://127.0.0.1:18900/` 或 `http://局域网IP:18900/`
+
+```json
+{
+  "meta": {
+    "lastTouchedVersion": "2026.3.11",
+    "lastTouchedAt": "2026-03-12T10:00:00.000Z"
+  },
+  "models": {
+    "providers": {
+      "bailian": {
+        "baseUrl": "https://coding.dashscope.aliyuncs.com/v1",
+        "apiKey": "sk-sp-xxxxxxxxxxxx",
+        "api": "openai-completions",
+        "models": [
+          {
+            "id": "qwen3.5-plus",
+            "name": "通义千问 3.5 Plus",
+            "contextWindow": 1000000,
+            "maxTokens": 65536
+          }
+        ]
+      }
+    }
+  },
+  "agents": {
+    "defaults": {
+      "model": {
+        "primary": "bailian/qwen3.5-plus"
+      }
+    }
+  },
+  "commands": {
+    "native": "auto",
+    "nativeSkills": "auto"
+  },
+  "gateway": {
+    "mode": "local",
+    "bind": "loopback",
+    "port": 3000,
+    "auth": {
+      "mode": "none"
+    },
+    "controlUi": {
+      "enabled": true,
+      "dangerouslyDisableDeviceAuth": true
+    }
+  },
+  "channels": {
+    "feishu": {
+      "appId": "cli_xxxxxxxxxxxx",
+      "appSecret": "your-app-secret",
+      "enabled": true,
+      "streaming": false,
+      "connectionMode": "websocket",
+      "dmPolicy": "open",
+      "groupPolicy": "open"
+    }
+  },
+  "plugins": {
+    "entries": {
+      "feishu": {
+        "enabled": true
+      }
+    }
+  }
+}
+```
+
+**配置要点解析**：
+
+1. **网关配置（完全无认证）**：
+   ```json
+   {
+     "gateway": {
+       "bind": "loopback",        // 仅本机访问（127.0.0.1）
+       "port": 3000,              // 内部端口
+       "auth": {
+         "mode": "none"           // ✅ 完全无认证
+       },
+       "controlUi": {
+         "dangerouslyDisableDeviceAuth": true  // 禁用设备绑定
+       }
+     }
+   }
+   ```
+   
+   **重要说明**：
+   - 使用 `bind: loopback` 是唯一支持 `auth.mode: none` 的绑定模式
+   - **主机模式**：直接访问 `http://127.0.0.1:18800/`，仅本机可访问
+   - **Docker 模式**：使用 Nginx 代理架构
+     - OpenClaw 监听：`127.0.0.1:3000`（内部，无认证）
+     - Nginx 监听：`0.0.0.0:18900`（外部，代理到 OpenClaw）
+     - 访问：`http://127.0.0.1:18900/` 或 `http://局域网IP:18900/`
+   - 详见：[激进模式-Nginx代理方案.md](./激进模式-Nginx代理方案.md)
+
+2. **飞书渠道（无需配对）**：
+   ```json
+   {
+     "channels": {
+       "feishu": {
+         "dmPolicy": "open",       // 私聊开放（无需配对）
+         "groupPolicy": "open"     // 群聊开放（无需配对）
+       }
+     }
+   }
+   ```
+
+**访问方式**：
+- Control UI：`http://<服务器IP>:3000` （无需 token）
+- 飞书：直接私聊或拉入群聊即可使用（无需批准配对）
+
+⚠️ **安全警告**：
+- **不要在公网环境使用此配置**
+- **不要在生产环境使用此配置**
+- **建议仅在内网或开发环境使用**
+- 任何能访问网络的人都可以控制你的实例
+
+---
+
+### 示例 2：最小化安全配置
+
+如果你需要基本的安全保护，使用此配置：
 
 ```json
 {
@@ -1442,11 +1648,22 @@ SecretRefSchema = z.discriminatedUnion("source", [
       "mode": "token",
       "token": "your-random-token-here"
     }
+  },
+  "channels": {
+    "feishu": {
+      "appId": "cli_xxxxxxxxxxxx",
+      "appSecret": "your-app-secret",
+      "enabled": true,
+      "dmPolicy": "pairing",
+      "groupPolicy": "pairing"
+    }
   }
 }
 ```
 
-### 示例 2：多智能体 + 飞书渠道
+---
+
+### 示例 3：多智能体 + 飞书渠道
 
 ```json
 {
@@ -1532,7 +1749,9 @@ SecretRefSchema = z.discriminatedUnion("source", [
 }
 ```
 
-### 示例 3：Docker 环境配置
+---
+
+### 示例 4：Docker 环境配置
 
 ```json
 {
@@ -1595,6 +1814,368 @@ SecretRefSchema = z.discriminatedUnion("source", [
 - `trustedProxies`: 配置 Docker 网络 CIDR（通常是 `172.x.x.x/16`）
 - `controlUi.dangerouslyDisableDeviceAuth = true`: 禁用设备认证（Docker 环境必需）
 - `agents.defaults.workspace = "/workspace"`: 使用容器内路径
+
+---
+
+## 配置模式对比
+
+### 激进模式 vs 安全模式
+
+根据你的使用场景，选择合适的配置策略：
+
+#### 🔓 激进模式（零门槛）
+
+**适用场景**：
+- 开发测试环境
+- 内网隔离环境
+- 快速上手学习
+- 个人本地使用
+
+**核心配置**：
+```json
+{
+  "gateway": {
+    "bind": "lan",                    // 局域网可访问
+    "auth": {
+      "mode": "none"                  // 无需认证
+    },
+    "controlUi": {
+      "dangerouslyDisableDeviceAuth": true
+    }
+  },
+  "channels": {
+    "feishu": {
+      "dmPolicy": "open",             // 私聊开放
+      "groupPolicy": "open"           // 群聊开放
+    }
+  }
+}
+```
+
+**优点**：
+- ✅ 零配置门槛，即开即用
+- ✅ 无需记住 Token
+- ✅ 飞书机器人无需配对，拉群即用
+- ✅ 减少新手困惑
+
+**风险**：
+- ⚠️ 任何能访问网络的人都可以控制实例
+- ⚠️ 任何人都可以通过飞书机器人对话（可能产生 API 费用）
+- ⚠️ 无法追踪谁在使用
+
+---
+
+#### 🔐 安全模式（推荐）
+
+**适用场景**：
+- 生产环境
+- 公网访问
+- 团队协作
+- 需要审计日志
+
+**核心配置**：
+```json
+{
+  "gateway": {
+    "bind": "loopback",               // 仅本地访问
+    "auth": {
+      "mode": "token",                // Token 认证
+      "token": "your-random-token"
+    },
+    "controlUi": {
+      "dangerouslyDisableDeviceAuth": false
+    }
+  },
+  "channels": {
+    "feishu": {
+      "dmPolicy": "pairing",          // 私聊需配对
+      "groupPolicy": "pairing"        // 群聊需配对
+    }
+  }
+}
+```
+
+**优点**：
+- ✅ 保护实例不被未授权访问
+- ✅ 控制谁可以使用飞书机器人
+- ✅ 避免意外的 API 费用
+- ✅ 可以追踪使用者
+
+**缺点**：
+- ❌ 需要配置和记住 Token
+- ❌ 飞书使用前需要管理员批准配对
+- ❌ 配置稍复杂
+
+---
+
+#### 🎯 混合模式（平衡）
+
+结合两者优点，适合小团队：
+
+**核心配置**：
+```json
+{
+  "gateway": {
+    "bind": "lan",                    // 局域网可访问（方便）
+    "auth": {
+      "mode": "token",                // 需要 Token（安全）
+      "token": "shared-team-token"
+    },
+    "controlUi": {
+      "dangerouslyDisableDeviceAuth": true
+    }
+  },
+  "channels": {
+    "feishu": {
+      "dmPolicy": "open",             // 私聊开放（方便）
+      "groupPolicy": "pairing"        // 群聊需配对（控制范围）
+    }
+  }
+}
+```
+
+**平衡点**：
+- ✅ Control UI 需要 Token（防止外人访问）
+- ✅ 私聊开放（团队成员可以直接用）
+- ✅ 群聊需配对（控制机器人被拉入哪些群）
+
+---
+
+### 配置决策树
+
+```
+Q: 你的实例会暴露在公网吗？
+├─ 是 → 必须使用【安全模式】
+└─ 否（仅内网）
+   └─ Q: 是否多人使用？
+      ├─ 是 → 推荐【混合模式】或【安全模式】
+      └─ 否（个人使用）→ 可以使用【激进模式】
+```
+
+---
+
+### 三种模式快速对比
+
+#### 配置项对比
+
+**网关配置**：
+```
+激进模式：bind=loopback, auth.mode=none（完全无认证）
+          Docker 模式: +Nginx 代理实现局域网访问
+混合模式：bind=lan, auth.mode=token（自定义token）
+安全模式：bind=loopback, auth.mode=token（强token + 仅本机）
+```
+
+**飞书配置**：
+```
+激进模式：dmPolicy=open, groupPolicy=open
+混合模式：dmPolicy=open, groupPolicy=pairing
+安全模式：dmPolicy=pairing, groupPolicy=pairing
+```
+
+**设备认证**：
+```
+激进模式：dangerouslyDisableDeviceAuth=true
+混合模式：dangerouslyDisableDeviceAuth=true
+安全模式：dangerouslyDisableDeviceAuth=false
+```
+
+#### 使用体验对比
+
+**Control UI 访问**：
+```
+激进模式：http://localhost:18900 → 直接进入
+混合模式：http://localhost:18900/#token=xxx → 需要 Token
+安全模式：http://localhost:18900/#token=xxx → 需要 Token + 设备绑定
+```
+
+**飞书私聊**：
+```
+激进模式：发消息 → 立即响应
+混合模式：发消息 → 立即响应
+安全模式：发消息 → 提示需要配对 → 管理员批准 → 可用
+```
+
+**飞书群聊**：
+```
+激进模式：拉机器人进群 → 立即可用
+混合模式：拉机器人进群 → 提示需要配对 → 管理员批准 → 可用
+安全模式：拉机器人进群 → 提示需要配对 → 管理员批准 → 可用
+```
+
+---
+
+### 实际操作建议
+
+#### 🎓 学习阶段（推荐：激进模式）
+
+**为什么**：
+- 减少配置门槛
+- 避免"为什么不工作"的困惑
+- 快速看到效果，建立信心
+
+**配置清单**：
+- [ ] `gateway.bind = "loopback"`
+- [ ] `gateway.port = 3000`（Docker 模式）
+- [ ] `gateway.auth.mode = "none"`
+- [ ] `channels.feishu.dmPolicy = "open"`
+- [ ] `channels.feishu.groupPolicy = "open"`
+- [ ] `gateway.controlUi.dangerouslyDisableDeviceAuth = true`
+- [ ] Docker 模式：使用 Nginx 代理（见 [激进模式-Nginx代理方案.md](./激进模式-Nginx代理方案.md)）
+
+---
+
+#### 🚀 生产部署（必须：安全模式）
+
+**为什么**：
+- 保护 API 费用
+- 审计使用者
+- 防止滥用
+
+**配置清单**：
+- [ ] `gateway.auth.mode = "token"`
+- [ ] `gateway.auth.token = "生成随机32字符"`
+- [ ] `gateway.bind = "loopback"` 或配置防火墙
+- [ ] `channels.feishu.dmPolicy = "pairing"`
+- [ ] `channels.feishu.groupPolicy = "pairing"`
+- [ ] `controlUi.dangerouslyDisableDeviceAuth = false`
+
+---
+
+#### 👥 团队协作（推荐：混合模式）
+
+**为什么**：
+- 平衡便利性和安全性
+- 团队成员可以直接私聊
+- 控制机器人被拉入哪些群
+
+**配置清单**：
+- [ ] `gateway.auth.mode = "token"` + 分享 Token 给团队
+- [ ] `gateway.bind = "lan"`
+- [ ] `channels.feishu.dmPolicy = "open"`
+- [ ] `channels.feishu.groupPolicy = "pairing"`
+- [ ] `controlUi.dangerouslyDisableDeviceAuth = true`
+
+---
+
+## 快速切换配置模式
+
+### 如何启用"激进模式"（零门槛）
+
+如果你已有一个实例，想要切换到激进模式（无需认证、无需配对），按以下步骤操作：
+
+#### 步骤 1：修改网关认证
+
+在 `<workspace>/<instance>/.openclaw/openclaw.json` 中修改：
+
+```json
+{
+  "gateway": {
+    "bind": "lan",                    // 改为局域网访问
+    "auth": {
+      "mode": "none"                  // 改为无认证
+    },
+    "controlUi": {
+      "dangerouslyDisableDeviceAuth": true  // 禁用设备认证
+    }
+  }
+}
+```
+
+#### 步骤 2：修改渠道策略
+
+在同一文件中修改渠道配置：
+
+```json
+{
+  "channels": {
+    "feishu": {
+      "appId": "cli_xxxxxxxxxxxx",
+      "appSecret": "your-app-secret",
+      "enabled": true,
+      "dmPolicy": "open",             // 改为开放模式
+      "groupPolicy": "open",          // 改为开放模式
+      "accounts": {
+        "bot_002": {
+          "appId": "cli_yyyyyyyyyyyy",
+          "appSecret": "another-secret",
+          "dmPolicy": "open",         // 多账号也改为开放
+          "groupPolicy": "open"
+        }
+      }
+    }
+  }
+}
+```
+
+#### 步骤 3：重启实例
+
+```bash
+python skills/openclaw-manager/scripts/instance_manager.py restart <实例名>
+```
+
+#### 步骤 4：验证配置
+
+**Control UI**：
+- 访问 `http://127.0.0.1:18900`（或你的端口）
+- 无需输入 Token，直接进入
+
+**飞书渠道**：
+- 直接私聊机器人，立即响应（无需配对）
+- 拉机器人进群，立即可用（无需批准）
+
+---
+
+### 如何从"激进模式"切换回"安全模式"
+
+#### 步骤 1：启用网关认证
+
+```json
+{
+  "gateway": {
+    "bind": "loopback",               // 改为仅本地访问
+    "auth": {
+      "mode": "token",                // 改为 Token 认证
+      "token": "生成一个随机token"    // 添加 Token
+    },
+    "controlUi": {
+      "dangerouslyDisableDeviceAuth": false  // 启用设备认证
+    }
+  }
+}
+```
+
+**生成 Token 的方法**：
+```bash
+# macOS/Linux
+openssl rand -hex 32
+
+# 或使用 Python
+python3 -c "import secrets; print(secrets.token_hex(32))"
+```
+
+#### 步骤 2：启用配对模式
+
+```json
+{
+  "channels": {
+    "feishu": {
+      "dmPolicy": "pairing",          // 改为配对模式
+      "groupPolicy": "pairing"        // 改为配对模式
+    }
+  }
+}
+```
+
+#### 步骤 3：重启实例并批准配对
+
+```bash
+# 重启实例
+python skills/openclaw-manager/scripts/instance_manager.py restart <实例名>
+
+# 批准配对请求
+python skills/openclaw-channel/scripts/channel_manager.py approve-pairing <实例名> feishu
+```
 
 ---
 
@@ -1695,6 +2276,205 @@ OpenClaw 使用 Zod 进行配置验证。如果配置有误，启动时会报错
 
 ---
 
+## 常见问题 FAQ
+
+### Q1: 为什么飞书机器人一直提示需要配对？
+
+**原因**：渠道配置使用了 `"pairing"` 模式。
+
+**解决方案**：
+
+**方案 A：改为开放模式（激进）**
+```json
+{
+  "channels": {
+    "feishu": {
+      "dmPolicy": "open",
+      "groupPolicy": "open"
+    }
+  }
+}
+```
+重启实例后，直接可用。
+
+**方案 B：批准配对请求（安全）**
+```bash
+python skills/openclaw-channel/scripts/channel_manager.py approve-pairing <实例名> feishu
+python skills/openclaw-manager/scripts/instance_manager.py restart <实例名>
+```
+
+---
+
+### Q2: 为什么访问 Control UI 提示 token mismatch？
+
+**原因**：`gateway.auth.mode = "token"` 但 URL 中没有携带 token。
+
+**解决方案**：
+
+**方案 A：使用正确的 URL（安全）**
+```
+http://127.0.0.1:18900/#token=你的token值
+```
+
+**方案 B：关闭认证（激进）**
+```json
+{
+  "gateway": {
+    "auth": {
+      "mode": "none"
+    }
+  }
+}
+```
+重启后直接访问 `http://127.0.0.1:18900`
+
+---
+
+### Q3: Docker 容器中如何访问 Control UI？
+
+**问题**：容器内绑定 `0.0.0.0`，但外部访问报错。
+
+**解决方案**：
+```json
+{
+  "gateway": {
+    "bind": "custom",
+    "customBindHost": "0.0.0.0",
+    "trustedProxies": ["172.24.0.0/16"],
+    "controlUi": {
+      "allowedOrigins": [
+        "http://localhost:18900",
+        "http://127.0.0.1:18900"
+      ],
+      "dangerouslyDisableDeviceAuth": true
+    },
+    "auth": {
+      "mode": "none"                  // Docker 环境建议无认证
+    }
+  }
+}
+```
+
+---
+
+### Q4: 如何让多个智能体使用不同的模型？
+
+**配置示例**：
+```json
+{
+  "agents": {
+    "defaults": {
+      "model": {
+        "primary": "bailian/qwen3.5-plus"
+      }
+    },
+    "list": [
+      {
+        "id": "general-agent",
+        "name": "通用助手"
+        // 继承 defaults，使用 qwen3.5-plus
+      },
+      {
+        "id": "coding-agent",
+        "name": "编程助手",
+        "model": {
+          "primary": "bailian/qwen3-coder-plus"  // 覆盖为编程模型
+        }
+      },
+      {
+        "id": "long-context-agent",
+        "name": "长文档助手",
+        "model": {
+          "primary": "bailian/kimi-k2.5"  // 覆盖为长上下文模型
+        }
+      }
+    ]
+  }
+}
+```
+
+---
+
+### Q5: 为什么配置了 `models` 字典但无法切换模型？
+
+**原因**：可能是以下之一：
+1. 模型名称拼写错误
+2. 模型引用格式错误（缺少 `provider/`）
+3. 该模型未在 `models.providers` 中定义
+
+**排查步骤**：
+
+1. 检查模型是否在 providers 中定义：
+```json
+{
+  "models": {
+    "providers": {
+      "bailian": {
+        "models": [
+          { "id": "qwen3.5-plus", ... }  // 必须存在
+        ]
+      }
+    }
+  }
+}
+```
+
+2. 检查 `agents.defaults.models` 引用格式：
+```json
+{
+  "agents": {
+    "defaults": {
+      "models": {
+        "bailian/qwen3.5-plus": {}  // 注意：provider/model-id
+      }
+    }
+  }
+}
+```
+
+3. 使用 `/model` 指令测试：
+```
+/model bailian/qwen3.5-plus    ✓ 正确
+/model qwen3.5-plus            ✗ 错误（缺少 provider）
+```
+
+---
+
+### Q6: `model.primary` 和 `models` 有什么关系？
+
+**关系**：
+- `model.primary` 是**初始使用的模型**
+- `models` 是**可以切换到的模型池**
+- `primary` **必须**在 `models` 中存在
+
+**正确配置**：
+```json
+{
+  "model": {
+    "primary": "bailian/qwen3.5-plus"  // 初始模型
+  },
+  "models": {
+    "bailian/qwen3.5-plus": {},        // ✓ primary 必须在这里
+    "bailian/kimi-k2.5": {}            // 可选的其他模型
+  }
+}
+```
+
+**错误配置**：
+```json
+{
+  "model": {
+    "primary": "bailian/qwen3.5-plus"  // 初始模型
+  },
+  "models": {
+    "bailian/kimi-k2.5": {}            // ✗ primary 不在这里！
+  }
+}
+```
+会报错：`Unknown model "bailian/qwen3.5-plus"`
+
+---
+
 ## 总结
 
 `openclaw.json` 是 OpenClaw 的核心配置文件，通过理解其结构和字段含义，你可以：
@@ -1703,12 +2483,19 @@ OpenClaw 使用 Zod 进行配置验证。如果配置有误，启动时会报错
 - ✅ 连接飞书、QQ、企微等消息平台
 - ✅ 设置灵活的消息路由规则
 - ✅ 控制访问权限和安全策略
+- ✅ 在开发和生产环境间灵活切换
 
 **关键要点**：
 1. 配置由 Zod Schema 严格验证，错误会在启动时提示
 2. 大部分字段都有合理的默认值，可以渐进式配置
 3. 敏感信息（API Key、Token）建议使用密钥引用而非明文
 4. Docker 环境需要特殊的网关配置（bind、trustedProxies 等）
+5. 根据使用场景选择合适的配置模式（激进/混合/安全）
+
+**配置模式选择建议**：
+- 🎓 **学习阶段** → 激进模式（零门槛，快速上手）
+- 👥 **团队协作** → 混合模式（便利性和安全性平衡）
+- 🚀 **生产部署** → 安全模式（完整的访问控制）
 
 ---
 

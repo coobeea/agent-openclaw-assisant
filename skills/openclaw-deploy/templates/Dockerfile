@@ -14,7 +14,7 @@ ENV HTTP_PROXY=$HTTP_PROXY
 ENV HTTPS_PROXY=$HTTPS_PROXY
 ENV NO_PROXY=$NO_PROXY
 
-# 安装必要的系统工具和 Python 环境
+# 安装必要的系统工具、Python 环境和 Nginx
 # 使用阿里云镜像源加速 apt
 RUN sed -i 's/deb.debian.org/mirrors.aliyun.com/g' /etc/apt/sources.list && \
     apt-get update && \
@@ -28,6 +28,7 @@ RUN sed -i 's/deb.debian.org/mirrors.aliyun.com/g' /etc/apt/sources.list && \
     build-essential \
     python3-dev \
     cmake \
+    nginx \
     && rm -rf /var/lib/apt/lists/*
 
 # 设置环境变量跳过 node-llama-cpp 的编译
@@ -45,19 +46,33 @@ RUN pip install --no-cache-dir -i https://pypi.tuna.tsinghua.edu.cn/simple \
     pyyaml \
     python-dotenv
 
-# 安装 OpenClaw
-# 使用淘宝镜像源加速 npm
-RUN npm install -g @openclaw/cli --registry=https://registry.npmmirror.com || npm install -g openclaw --registry=https://registry.npmmirror.com
+# 复制 OpenClaw 源码到全局 node_modules
+COPY openclaw-source /usr/local/lib/node_modules/openclaw/
+
+# 安装依赖
+RUN cd /usr/local/lib/node_modules/openclaw && \
+    npm install --registry=https://registry.npmmirror.com
+
+# 创建全局命令链接
+RUN ln -s /usr/local/lib/node_modules/openclaw/openclaw.mjs /usr/local/bin/openclaw && \
+    chmod +x /usr/local/lib/node_modules/openclaw/openclaw.mjs
 
 # 创建工作目录
 WORKDIR /workspace
 
-# 暴露端口 (会被 docker-compose 覆盖)
-EXPOSE 3000
+# 复制 Nginx 配置和启动脚本
+COPY nginx.conf /etc/nginx/nginx.conf
+COPY start-with-nginx.sh /usr/local/bin/start-with-nginx.sh
+RUN chmod +x /usr/local/bin/start-with-nginx.sh
 
-# 健康检查
+# 暴露端口
+# - 3000: OpenClaw 内部端口（loopback）
+# - 18900: Nginx 代理端口（对外暴露）
+EXPOSE 18900
+
+# 健康检查（通过 Nginx 代理访问）
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-  CMD curl -f http://localhost:${PORT:-3000}/health || exit 1
+  CMD curl -f http://localhost:18900/ || exit 1
 
-# 启动命令
-CMD ["sh", "-c", "node /usr/local/lib/node_modules/openclaw/dist/index.js gateway --port ${PORT:-3000}"]
+# 启动命令（使用启动脚本）
+CMD ["/usr/local/bin/start-with-nginx.sh"]

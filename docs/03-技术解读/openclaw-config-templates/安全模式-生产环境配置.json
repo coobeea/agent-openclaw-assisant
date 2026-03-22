@@ -1,0 +1,101 @@
+{
+  "$schema": "https://openclaw.app/schema/config.json",
+  "meta": {
+    "lastTouchedVersion": "2026.3.11",
+    "lastTouchedAt": "2026-03-12T00:00:00.000Z"
+  },
+  "models": {
+    "providers": {
+      "bailian": {
+        "baseUrl": "https://coding.dashscope.aliyuncs.com/v1",
+        "apiKey": {
+          "source": "env",
+          "provider": "default",
+          "id": "BAILIAN_API_KEY"
+        },
+        "api": "openai-completions",
+        "models": [
+          {
+            "id": "qwen3.5-plus",
+            "name": "通义千问 3.5 Plus",
+            "reasoning": false,
+            "input": ["text", "image"],
+            "cost": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0
+            },
+            "contextWindow": 1000000,
+            "maxTokens": 65536
+          }
+        ]
+      }
+    }
+  },
+  "agents": {
+    "defaults": {
+      "model": {
+        "primary": "bailian/qwen3.5-plus"
+      },
+      "models": {
+        "bailian/qwen3.5-plus": {}
+      },
+      "compaction": {
+        "mode": "safeguard"
+      }
+    },
+    "list": [
+      {
+        "id": "default-agent",
+        "name": "默认智能体"
+      }
+    ]
+  },
+  "commands": {
+    "native": "off",
+    "nativeSkills": "off",
+    "restart": false,
+    "ownerDisplay": "anonymous"
+  },
+  "gateway": {
+    "mode": "local",
+    "bind": "loopback",
+    "auth": {
+      "mode": "token",
+      "token": "生成一个随机32字符的token"
+    },
+    "controlUi": {
+      "enabled": true,
+      "dangerouslyDisableDeviceAuth": false
+    }
+  },
+  "channels": {
+    "feishu": {
+      "appId": "你的飞书AppID",
+      "appSecret": {
+        "source": "env",
+        "provider": "default",
+        "id": "FEISHU_APP_SECRET"
+      },
+      "enabled": true,
+      "streaming": false,
+      "dmPolicy": "pairing",
+      "groupPolicy": "pairing"
+    }
+  },
+  "plugins": {
+    "entries": {
+      "feishu": {
+        "enabled": true
+      }
+    }
+  },
+  "secrets": {
+    "providers": {
+      "default": {
+        "source": "env"
+      }
+    }
+  }
+}
