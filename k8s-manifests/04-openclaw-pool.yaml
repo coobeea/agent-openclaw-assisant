@@ -1,0 +1,171 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: openclaw-env-config
+  namespace: openclaw
+data:
+  # PostgreSQL 配置
+  POSTGRES_HOST: "postgres"
+  POSTGRES_PORT: "5432"
+  POSTGRES_DB: "openclaw"
+  POSTGRES_USER: "postgres"
+  POSTGRES_PASSWORD: "openclaw123"
+  
+  # Redis 配置
+  REDIS_HOST: "redis"
+  REDIS_PORT: "6379"
+  
+  # MinIO 配置
+  MINIO_ENDPOINT: "minio:9000"
+  MINIO_ACCESS_KEY: "admin"
+  MINIO_SECRET_KEY: "openclaw123"
+  MINIO_BUCKET: "openclaw-data"
+  
+  # OpenClaw 配置
+  NODE_ENV: "development"
+  LOG_LEVEL: "info"
+  
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: openclaw-gateway-config
+  namespace: openclaw
+data:
+  openclaw.json: |
+    {
+      "gateway": {
+        "bind": "lan",
+        "port": 18789,
+        "auth": {
+          "mode": "password",
+          "password": "openclaw123"
+        },
+        "controlUi": {
+          "dangerouslyAllowHostHeaderOriginFallback": true
+        },
+        "http": {
+          "endpoints": {
+            "chatCompletions": {
+              "enabled": true
+            }
+          }
+        }
+      },
+      "models": {
+        "providers": {
+          "ollama": {
+            "baseUrl": "http://host.docker.internal:11434",
+            "apiKey": "ollama-local",
+            "api": "ollama",
+            "models": [
+              {
+                "id": "qwen3.5:9b",
+                "name": "Qwen 3.5 9B (支持流式)"
+              },
+              {
+                "id": "gemma4:e4b",
+                "name": "Gemma 4 e4b"
+              }
+            ]
+          }
+        }
+      },
+      "agents": {
+        "defaults": {
+          "model": {
+            "primary": "ollama/gemma4:e4b"
+          }
+        }
+      }
+    }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: openclaw-pool
+  namespace: openclaw
+  labels:
+    app: openclaw-pool
+spec:
+  replicas: 5  # 5 个容器的热池
+  selector:
+    matchLabels:
+      app: openclaw-pool
+  template:
+    metadata:
+      labels:
+        app: openclaw-pool
+    spec:
+      containers:
+      - name: openclaw
+        image: openclaw-pool:streaming
+        imagePullPolicy: Never
+        command: ["/bin/sh", "-c", "cp /config/openclaw.json /root/.openclaw/openclaw.json && node openclaw.mjs gateway --allow-unconfigured"]
+        ports:
+        - containerPort: 18789
+          name: gateway
+        - containerPort: 3000
+          name: http
+        envFrom:
+        - configMapRef:
+            name: openclaw-env-config
+        volumeMounts:
+        - name: openclaw-data
+          mountPath: /root/.openclaw
+        - name: config
+          mountPath: /config
+        - name: agents-workspace
+          mountPath: /data/agents
+        resources:
+              requests:
+                memory: "1.5Gi"
+                cpu: "500m"
+              limits:
+                memory: "3Gi"
+                cpu: "2000m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 18789
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 18789
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 2
+      volumes:
+      - name: openclaw-data
+        emptyDir: {}
+      - name: config
+        configMap:
+          name: openclaw-gateway-config
+      - name: agents-workspace
+        hostPath:
+          path: /Users/lifeng/git/git-claw/agent-openclaw-assisant/workspace/lobsters/agents
+          type: DirectoryOrCreate
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: openclaw-pool-service
+  namespace: openclaw
+spec:
+  type: ClusterIP
+  selector:
+    app: openclaw-pool
+  ports:
+  - protocol: TCP
+    name: gateway
+    port: 18789
+    targetPort: 18789
+  - protocol: TCP
+    name: http
+    port: 3000
+    targetPort: 3000

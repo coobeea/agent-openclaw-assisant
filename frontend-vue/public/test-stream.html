@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>SSE 流式测试</title>
+    <style>
+        body { 
+            font-family: monospace; 
+            padding: 20px; 
+            background: #1e1e1e;
+            color: #d4d4d4;
+        }
+        #output { 
+            white-space: pre-wrap; 
+            border: 1px solid #444; 
+            padding: 15px; 
+            background: #252526;
+            min-height: 300px;
+            margin-top: 10px;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            background: #0e639c;
+            color: white;
+            border: none;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+        button:hover { background: #1177bb; }
+        .chunk { 
+            color: #4ec9b0; 
+            margin: 5px 0;
+            animation: fadeIn 0.3s;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        .error { color: #f48771; }
+        .info { color: #608b4e; }
+    </style>
+</head>
+<body>
+    <h1>SSE 流式输出测试</h1>
+    <button onclick="testStream()">测试流式输出</button>
+    <button onclick="clearOutput()">清空</button>
+    <div id="output"></div>
+
+    <script>
+        function clearOutput() {
+            document.getElementById('output').innerHTML = '';
+        }
+
+        function addLog(msg, type = 'info') {
+            const output = document.getElementById('output');
+            const div = document.createElement('div');
+            div.className = type;
+            div.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+            output.appendChild(div);
+            output.scrollTop = output.scrollHeight;
+        }
+
+        function testStream() {
+            clearOutput();
+            addLog('开始测试...', 'info');
+            
+            const xhr = new XMLHttpRequest();
+            xhr.open('POST', '/api/chat/stream', true);
+            xhr.setRequestHeader('Content-Type', 'application/json');
+            
+            let lastIndex = 0;
+            let chunkCount = 0;
+            let startTime = Date.now();
+            let lastChunkTime = startTime;
+            
+            xhr.onprogress = function() {
+                const now = Date.now();
+                const timeSinceStart = ((now - startTime) / 1000).toFixed(2);
+                const timeSinceLastChunk = ((now - lastChunkTime) / 1000).toFixed(3);
+                lastChunkTime = now;
+                
+                const newData = xhr.responseText.substring(lastIndex);
+                lastIndex = xhr.responseText.length;
+                
+                if (newData) {
+                    const lines = newData.split('\n');
+                    
+                    for (const line of lines) {
+                        if (line.startsWith('data: ')) {
+                            const dataStr = line.substring(6).trim();
+                            if (dataStr === '') continue;
+                            
+                            chunkCount++;
+                            
+                            try {
+                                const data = JSON.parse(dataStr);
+                                const output = document.getElementById('output');
+                                const div = document.createElement('div');
+                                div.className = 'chunk';
+                                
+                                let displayText = '';
+                                if (data.type === 'content') {
+                                    displayText = data.content || '';
+                                } else if (data.type === 'done') {
+                                    displayText = '(done)';
+                                } else {
+                                    displayText = `[${data.type}]`;
+                                }
+                                
+                                div.innerHTML = `<strong>[Chunk #${chunkCount}]</strong> ` +
+                                    `<span style="color:#569cd6">+${timeSinceStart}s</span> ` +
+                                    `<span style="color:#ce9178">(Δ${timeSinceLastChunk}s)</span> ` +
+                                    `<span style="color:#4ec9b0">${data.type}:</span> ` +
+                                    `${displayText}`;
+                                
+                                output.appendChild(div);
+                                output.scrollTop = output.scrollHeight;
+                            } catch (e) {
+                                addLog(`解析失败: ${dataStr}`, 'error');
+                            }
+                        }
+                    }
+                }
+            };
+            
+            xhr.onload = function() {
+                const totalTime = ((Date.now() - startTime) / 1000).toFixed(2);
+                addLog(`✅ 完成！状态: ${xhr.status}, 总耗时: ${totalTime}s, 收到 ${chunkCount} 个数据块`, 'info');
+            };
+            
+            xhr.onerror = function() {
+                addLog('❌ 请求失败', 'error');
+            };
+            
+            xhr.ontimeout = function() {
+                addLog('⏱️ 请求超时', 'error');
+            };
+            
+            xhr.timeout = 0; // 0 表示无超时限制
+            
+            xhr.send(JSON.stringify({
+                agent_id: 'agent-001',
+                message: '请用中文写一段100字的自我介绍'
+            }));
+            
+            addLog('请求已发送，等待响应...', 'info');
+        }
+    </script>
+</body>
+</html>

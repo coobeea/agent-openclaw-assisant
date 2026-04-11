@@ -1,0 +1,7 @@
+FROM openclaw-scheduler-go:debug AS base
+
+WORKDIR /app
+COPY openclaw-scheduler /app/openclaw-scheduler
+
+EXPOSE 8080
+CMD ["/app/openclaw-scheduler"]

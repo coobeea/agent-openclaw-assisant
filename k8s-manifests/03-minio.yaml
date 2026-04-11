@@ -1,0 +1,76 @@
+# 使用 hostPath 直接映射到宿主机
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: minio-config
+  namespace: openclaw
+data:
+  MINIO_ROOT_USER: admin
+  MINIO_ROOT_PASSWORD: openclaw123
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: minio
+  namespace: openclaw
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: minio
+  template:
+    metadata:
+      labels:
+        app: minio
+    spec:
+      containers:
+      - name: minio
+        image: minio/minio:latest
+        args:
+        - server
+        - /data
+        - --console-address
+        - ":9001"
+        ports:
+        - containerPort: 9000
+          name: api
+        - containerPort: 9001
+          name: console
+        envFrom:
+        - configMapRef:
+            name: minio-config
+        volumeMounts:
+        - name: minio-storage
+          mountPath: /data
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+      volumes:
+      - name: minio-storage
+        hostPath:
+          path: /Users/lifeng/git/git-claw/agent-openclaw-assisant/workspace/lobsters/storage
+          type: DirectoryOrCreate
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: minio
+  namespace: openclaw
+spec:
+  type: ClusterIP
+  selector:
+    app: minio
+  ports:
+  - protocol: TCP
+    name: api
+    port: 9000
+    targetPort: 9000
+  - protocol: TCP
+    name: console
+    port: 9001
+    targetPort: 9001

@@ -1,0 +1,52 @@
+# 持久卷配置 - 映射到宿主机目录
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: postgres-pv
+spec:
+  capacity:
+    storage: 5Gi
+  accessModes:
+    - ReadWriteOnce
+  hostPath:
+    path: /Users/lifeng/git/git-claw/agent-openclaw-assisant/workspace/lobsters/database
+    type: DirectoryOrCreate
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: redis-pv
+spec:
+  capacity:
+    storage: 2Gi
+  accessModes:
+    - ReadWriteOnce
+  hostPath:
+    path: /Users/lifeng/git/git-claw/agent-openclaw-assisant/workspace/lobsters/cache
+    type: DirectoryOrCreate
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: minio-pv
+spec:
+  capacity:
+    storage: 10Gi
+  accessModes:
+    - ReadWriteOnce
+  hostPath:
+    path: /Users/lifeng/git/git-claw/agent-openclaw-assisant/workspace/lobsters/storage
+    type: DirectoryOrCreate
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: agents-pv
+spec:
+  capacity:
+    storage: 20Gi
+  accessModes:
+    - ReadWriteMany
+  hostPath:
+    path: /Users/lifeng/git/git-claw/agent-openclaw-assisant/workspace/lobsters/agents
+    type: DirectoryOrCreate

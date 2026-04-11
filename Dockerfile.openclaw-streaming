@@ -1,0 +1,29 @@
+# 使用已编译的 OpenClaw 代码构建流式版本
+FROM node:22-alpine
+
+# 安装运行时依赖
+RUN apk add --no-cache \
+    python3 \
+    bash \
+    git \
+    curl
+
+WORKDIR /app
+
+# 复制编译后的代码
+COPY workspace/source/openclaw/dist ./dist
+COPY workspace/source/openclaw/package.json ./
+COPY workspace/source/openclaw/openclaw.mjs ./
+
+# 设置环境变量
+ENV NODE_ENV=production
+ENV OPENCLAW_CONFIG_DIR=/root/.openclaw
+
+# 创建配置目录
+RUN mkdir -p /root/.openclaw /data/agents
+
+# 暴露端口
+EXPOSE 18789
+
+# 启动命令（由 K8s 覆盖）
+CMD ["node", "openclaw.mjs", "gateway", "start"]

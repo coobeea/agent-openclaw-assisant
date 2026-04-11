@@ -1,0 +1,18 @@
+FROM openclaw-pool:streaming AS base
+
+WORKDIR /app-frontend
+
+# 复制构建好的前端文件
+COPY dist ./dist
+COPY package.json ./
+COPY package-lock.json ./
+COPY server.js ./
+
+# 安装生产依赖
+RUN npm install --only=production
+
+# 暴露端口
+EXPOSE 80
+
+# 启动服务
+CMD ["node", "server.js"]
