@@ -173,8 +173,15 @@
                   <div class="message agent-message">
                     <div class="message-avatar">🤖</div>
                     <div class="message-bubble">
+                      <!-- 思考中提示 -->
+                      <div v-if="msg.isThinking" class="thinking-indicator">
+                        <span class="thinking-dot"></span>
+                        <span class="thinking-dot"></span>
+                        <span class="thinking-dot"></span>
+                        <span class="thinking-text">{{ msg.thinking || 'AI 正在思考中...' }}</span>
+                      </div>
                       <!-- 思维链 -->
-                      <div v-if="msg.thinking" class="thinking-section">
+                      <div v-if="!msg.isThinking && msg.thinking && msg.thinking !== '思考中...'" class="thinking-section">
                         <el-collapse>
                           <el-collapse-item>
                             <template #title>
@@ -187,7 +194,7 @@
                         </el-collapse>
                       </div>
                       <!-- 正常回复 -->
-                      <div class="message-text">{{ msg.agent_response || '思考中...' }}</div>
+                      <div v-if="!msg.isThinking" class="message-text">{{ msg.agent_response || '思考中...' }}</div>
                     </div>
                   </div>
                 </div>
@@ -429,11 +436,24 @@ const sendMessage = async () => {
     id: Date.now(),
     user_message: message,
     agent_response: '',
-    thinking: ''
+    thinking: '',
+    isThinking: true // 添加思考状态
   }
   chatHistory.value.push(newMessage)
   await nextTick()
   scrollToBottom()
+  
+  // 思考动画（每 500ms 更新一次）
+  let thinkingDots = 0
+  const thinkingInterval = setInterval(() => {
+    if (!newMessage.isThinking) {
+      clearInterval(thinkingInterval)
+      return
+    }
+    thinkingDots = (thinkingDots + 1) % 4
+    newMessage.thinking = '思考中' + '.'.repeat(thinkingDots)
+    chatHistory.value = [...chatHistory.value]
+  }, 500)
 
   try {
     // 使用 XMLHttpRequest 支持 SSE 流式传输（比 fetch 更可靠）
@@ -461,11 +481,20 @@ const sendMessage = async () => {
           try {
             const data = JSON.parse(dataStr)
             
-            if (data.type === 'thinking' || data.type === 'thinking_complete') {
+            // 收到实际内容，停止思考动画
+            if (data.choices && data.choices[0]?.delta?.content) {
+              newMessage.isThinking = false
+              const content = data.choices[0].delta.content
+              newMessage.agent_response += content
+            } else if (data.type === 'heartbeat') {
+              // 心跳事件，保持连接
+              console.log('💓 心跳')
+            } else if (data.type === 'thinking' || data.type === 'thinking_complete') {
               // 思维链内容
               newMessage.thinking += (data.content || '')
             } else if (data.type === 'content') {
               // 正常回复内容
+              newMessage.isThinking = false
               newMessage.agent_response += (data.content || '')
             } else if (data.type === 'done') {
               // 完成
@@ -1224,6 +1253,60 @@ body {
 
 .empty-history {
   margin-top: 100px;
+}
+
+/* ==================== 思考中动画 ==================== */
+
+.thinking-indicator {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  background: rgba(102, 126, 234, 0.05);
+  border-radius: 12px;
+  animation: pulse-bg 2s ease-in-out infinite;
+}
+
+@keyframes pulse-bg {
+  0%, 100% {
+    background: rgba(102, 126, 234, 0.05);
+  }
+  50% {
+    background: rgba(102, 126, 234, 0.1);
+  }
+}
+
+.thinking-dot {
+  width: 8px;
+  height: 8px;
+  background: #667eea;
+  border-radius: 50%;
+  animation: thinking-bounce 1.4s infinite ease-in-out;
+}
+
+.thinking-dot:nth-child(1) {
+  animation-delay: -0.32s;
+}
+
+.thinking-dot:nth-child(2) {
+  animation-delay: -0.16s;
+}
+
+@keyframes thinking-bounce {
+  0%, 80%, 100% {
+    transform: scale(0);
+    opacity: 0.5;
+  }
+  40% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.thinking-text {
+  font-size: 13px;
+  color: #667eea;
+  font-weight: 500;
 }
 
 /* ==================== 输入框 ==================== */

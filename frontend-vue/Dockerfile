@@ -4,7 +4,13 @@ WORKDIR /app
 
 # 复制 package.json
 COPY package.json ./
-RUN npm install
+
+# 显式禁用所有代理，使用国内镜像源安装依赖
+RUN unset HTTP_PROXY HTTPS_PROXY http_proxy https_proxy && \
+    npm config delete proxy 2>/dev/null || true && \
+    npm config delete https-proxy 2>/dev/null || true && \
+    npm config set registry https://registry.npmmirror.com && \
+    npm install --registry=https://registry.npmmirror.com --no-proxy
 
 # 复制源代码
 COPY . .

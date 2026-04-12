@@ -1,0 +1,28 @@
+# 使用 golang 镜像作为构建阶段
+FROM golang:1.22-alpine AS builder
+WORKDIR /build
+
+# 设置 Go 代理为国内镜像，禁用 HTTP 代理
+ENV GOPROXY=https://goproxy.cn,direct
+ENV GO111MODULE=on
+ENV HTTP_PROXY=
+ENV HTTPS_PROXY=
+ENV http_proxy=
+ENV https_proxy=
+
+# 复制 go.mod 和 go.sum
+COPY go.mod go.sum ./
+RUN unset HTTP_PROXY HTTPS_PROXY http_proxy https_proxy && go mod download
+
+# 复制源代码
+COPY . .
+
+# 编译
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o openclaw-scheduler ./cmd/server
+
+# 运行阶段
+FROM alpine:latest
+WORKDIR /app
+COPY --from=builder /build/openclaw-scheduler /app/openclaw-scheduler
+EXPOSE 8080
+CMD ["/app/openclaw-scheduler"]

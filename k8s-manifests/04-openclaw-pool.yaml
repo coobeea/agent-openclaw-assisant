@@ -38,11 +38,12 @@ data:
         "bind": "lan",
         "port": 18789,
         "auth": {
-          "mode": "password",
-          "password": "openclaw123"
+          "mode": "token",
+          "token": "openclaw-internal-k8s-token"
         },
         "controlUi": {
-          "dangerouslyAllowHostHeaderOriginFallback": true
+          "dangerouslyAllowHostHeaderOriginFallback": true,
+          "dangerouslyDisableDeviceAuth": true
         },
         "http": {
           "endpoints": {
