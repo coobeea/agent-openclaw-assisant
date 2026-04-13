@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
       - name: frontend
-        image: frontend-vue:local
+        image: frontend-vue:streamfix
         imagePullPolicy: Never  # 使用本地镜像
         ports:
         - containerPort: 80

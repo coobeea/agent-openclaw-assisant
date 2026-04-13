@@ -51,7 +51,7 @@ spec:
       serviceAccountName: openclaw-scheduler
       containers:
       - name: scheduler
-        image: openclaw-scheduler-go:debug
+        image: openclaw-scheduler-go:streamfix
         imagePullPolicy: Never
         ports:
         - containerPort: 8080

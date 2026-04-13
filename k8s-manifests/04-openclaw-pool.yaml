@@ -75,7 +75,7 @@ data:
       "agents": {
         "defaults": {
           "model": {
-            "primary": "ollama/gemma4:e4b"
+            "primary": "ollama/qwen3.5:9b"
           }
         }
       }
@@ -89,7 +89,12 @@ metadata:
   labels:
     app: openclaw-pool
 spec:
-  replicas: 5  # 5 个容器的热池
+  replicas: 4
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 0
+      maxUnavailable: 1
   selector:
     matchLabels:
       app: openclaw-pool

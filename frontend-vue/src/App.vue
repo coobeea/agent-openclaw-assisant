@@ -437,14 +437,15 @@ const sendMessage = async () => {
     user_message: message,
     agent_response: '',
     thinking: '',
-    isThinking: true // 添加思考状态
+    isThinking: true
   }
   chatHistory.value.push(newMessage)
   await nextTick()
   scrollToBottom()
   
-  // 思考动画（每 500ms 更新一次）
   let thinkingDots = 0
+  let streamFinished = false
+  let streamBuffer = ''
   const thinkingInterval = setInterval(() => {
     if (!newMessage.isThinking) {
       clearInterval(thinkingInterval)
@@ -455,8 +456,82 @@ const sendMessage = async () => {
     chatHistory.value = [...chatHistory.value]
   }, 500)
 
+  const finishStream = () => {
+    clearInterval(thinkingInterval)
+    sending.value = false
+    newMessage.isThinking = false
+    chatHistory.value = [...chatHistory.value]
+  }
+
+  const handleStreamEvent = (dataStr) => {
+    if (!dataStr || streamFinished) {
+      return
+    }
+
+    if (dataStr === '[DONE]') {
+      streamFinished = true
+      finishStream()
+      return
+    }
+
+    let data
+    try {
+      data = JSON.parse(dataStr)
+    } catch (error) {
+      console.warn('解析 SSE 数据失败:', dataStr, error)
+      return
+    }
+
+    if (data.choices && data.choices[0]?.delta?.content) {
+      newMessage.isThinking = false
+      newMessage.agent_response += data.choices[0].delta.content
+    } else if (data.type === 'status') {
+      newMessage.thinking = data.content || '思考中'
+    } else if (data.type === 'heartbeat') {
+      return
+    } else if (data.type === 'error') {
+      newMessage.isThinking = false
+      newMessage.agent_response = data.content || '[发送失败]'
+      streamFinished = true
+      finishStream()
+      ElMessage.error(data.content || '发送失败')
+      return
+    } else if (data.type === 'thinking' || data.type === 'thinking_complete') {
+      newMessage.thinking += (data.content || '')
+    } else if (data.type === 'content') {
+      newMessage.isThinking = false
+      newMessage.agent_response += (data.content || '')
+    }
+
+    chatHistory.value = [...chatHistory.value]
+    setTimeout(() => scrollToBottom(), 0)
+  }
+
+  const processStreamBuffer = () => {
+    const normalizedBuffer = streamBuffer.replace(/\r\n/g, '\n')
+    const events = normalizedBuffer.split('\n\n')
+
+    streamBuffer = events.pop() || ''
+
+    for (const eventBlock of events) {
+      if (!eventBlock || eventBlock.startsWith(':')) {
+        continue
+      }
+
+      const dataLines = eventBlock
+        .split('\n')
+        .filter(line => line.startsWith('data:'))
+        .map(line => line.slice(5).trimStart())
+
+      if (dataLines.length === 0) {
+        continue
+      }
+
+      handleStreamEvent(dataLines.join('\n'))
+    }
+  }
+
   try {
-    // 使用 XMLHttpRequest 支持 SSE 流式传输（比 fetch 更可靠）
     const xhr = new XMLHttpRequest()
     xhr.open('POST', '/api/chat/stream', true)
     xhr.setRequestHeader('Content-Type', 'application/json')
@@ -465,94 +540,55 @@ const sendMessage = async () => {
     let lastIndex = 0
     
     xhr.onprogress = function() {
-      // 获取新增的数据
       const newData = xhr.responseText.substring(lastIndex)
       lastIndex = xhr.responseText.length
-      
-      // 按行分割
-      const lines = newData.split('\n')
-      
-      for (const line of lines) {
-        if (line.startsWith('data: ')) {
-          const dataStr = line.substring(6).trim()
-          
-          if (dataStr === '') continue
-          
-          try {
-            const data = JSON.parse(dataStr)
-            
-            // 收到实际内容，停止思考动画
-            if (data.choices && data.choices[0]?.delta?.content) {
-              newMessage.isThinking = false
-              const content = data.choices[0].delta.content
-              newMessage.agent_response += content
-            } else if (data.type === 'heartbeat') {
-              // 心跳事件，保持连接
-              console.log('💓 心跳')
-            } else if (data.type === 'thinking' || data.type === 'thinking_complete') {
-              // 思维链内容
-              newMessage.thinking += (data.content || '')
-            } else if (data.type === 'content') {
-              // 正常回复内容
-              newMessage.isThinking = false
-              newMessage.agent_response += (data.content || '')
-            } else if (data.type === 'done') {
-              // 完成
-              console.log('流式传输完成')
-            }
-            
-            // 强制更新和滚动
-            chatHistory.value = [...chatHistory.value]
-            setTimeout(() => scrollToBottom(), 0)
-            
-          } catch (e) {
-            console.warn('解析 SSE 数据失败:', dataStr, e)
-          }
-        }
-      }
+      streamBuffer += newData
+      processStreamBuffer()
     }
     
     xhr.onload = function() {
-      console.log('请求完成', xhr.status)
       if (xhr.status !== 200) {
-        throw new Error(`请求失败: ${xhr.status}`)
+        finishStream()
+        newMessage.agent_response = `[请求失败: ${xhr.status}]`
+        ElMessage.error(`请求失败: ${xhr.status}`)
+        return
       }
       
-      // 如果没有收到任何内容
+      if (streamBuffer.trim()) {
+        processStreamBuffer()
+      }
+
       if (!newMessage.agent_response && !newMessage.thinking) {
         newMessage.agent_response = '[无回复]'
       }
       
-      sending.value = false
+      finishStream()
     }
     
     xhr.onerror = function() {
-      console.error('请求错误')
+      finishStream()
       ElMessage.error('发送失败')
       newMessage.agent_response = '[发送失败]'
-      sending.value = false
     }
     
     xhr.ontimeout = function() {
-      console.error('请求超时')
+      finishStream()
       ElMessage.error('请求超时')
       newMessage.agent_response = '[请求超时]'
-      sending.value = false
     }
     
-    xhr.timeout = 300000 // 5分钟超时
+    xhr.timeout = 300000
     
-    // 发送请求
     xhr.send(JSON.stringify({
       agent_id: currentAgent.value.agent_id,
       message: message
     }))
 
   } catch (error) {
+    finishStream()
     console.error('发送消息失败:', error)
     ElMessage.error(error.message || '发送失败')
     newMessage.agent_response = '[发送失败]'
-    sending.value = false
   }
 }
 

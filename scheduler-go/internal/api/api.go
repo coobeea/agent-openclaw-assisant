@@ -1,7 +1,6 @@
 package api
 
 import (
-	"strings"
 	"bytes"
 	"encoding/json"
 	"fmt"
@@ -10,14 +9,16 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
-	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
 	"openclaw-scheduler/internal/db"
 	"openclaw-scheduler/internal/k8s"
 	wspool "openclaw-scheduler/internal/websocket"
+
+	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 )
 
 // 全局 WebSocket 连接池
@@ -73,7 +74,8 @@ func RegisterRoutes(r *gin.Engine) {
 	chatGroup := r.Group("/api/chat")
 	{
 		chatGroup.POST("", Chat)
-		chatGroup.POST("/stream", ChatStream) // 流式接口（通过 OpenClaw Gateway）
+		chatGroup.POST("/stream", ChatStream)   // 原版流式接口（直接 WebSocket）
+		chatGroup.POST("/stream/v2", ChatStreamV2) // V2 流式接口（可配置内核）
 		chatGroup.GET("/history", GetChatHistory)
 	}
 }
@@ -194,11 +196,21 @@ func CreateAgent(c *gin.Context) {
 		return
 	}
 
+	go func(agentID string) {
+		container, warmErr := k8s.WarmAgent(agentID)
+		if warmErr != nil {
+			log.Printf("⚠️  [CreateAgent] 智能体预热失败: %s, err=%v", agentID, warmErr)
+			return
+		}
+		log.Printf("🔥 [CreateAgent] 智能体预热完成: %s -> %s", agentID, container.PodName)
+	}(agent.AgentID)
+
 	c.JSON(http.StatusOK, gin.H{
 		"success":        true,
 		"agent_id":       agent.AgentID,
 		"name":           agent.Name,
 		"workspace_path": agent.WorkspacePath,
+		"warming":        true,
 	})
 }
 
@@ -301,14 +313,14 @@ func Chat(c *gin.Context) {
 	}
 
 	// 2. 确保智能体在容器中已注册
-	agentDir := fmt.Sprintf("/data/agents/%s/agent", req.AgentID)
-	workspaceDir := fmt.Sprintf("/data/agents/%s", req.AgentID)
-	addCmd := []string{"node", "openclaw.mjs", "agents", "add", req.AgentID, "--workspace", workspaceDir, "--agent-dir", agentDir, "--non-interactive"}
-	_, _, _ = k8s.ExecCommand("openclaw", container.PodName, addCmd) // 忽略错误，因为可能已经存在
+	if err := k8s.EnsureAgentReady(req.AgentID, container); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
 
 	// 3. 调用 OpenClaw Gateway HTTP API (非流式)
 	gatewayURL := fmt.Sprintf("http://%s:18789/v1/chat/completions", container.IP)
-	
+
 	requestBody := map[string]interface{}{
 		"model": fmt.Sprintf("openclaw:%s", req.AgentID),
 		"messages": []map[string]string{
@@ -316,17 +328,17 @@ func Chat(c *gin.Context) {
 		},
 		"stream": false,
 	}
-	
+
 	bodyBytes, _ := json.Marshal(requestBody)
 	httpReq, err := http.NewRequest("POST", gatewayURL, bytes.NewReader(bodyBytes))
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("创建请求失败: %v", err)})
 		return
 	}
-	
+
 	httpReq.Header.Set("Content-Type", "application/json")
 	httpReq.Header.Set("Authorization", "Bearer openclaw123")
-	
+
 	client := &http.Client{Timeout: 300 * time.Second}
 	resp, err := client.Do(httpReq)
 	if err != nil {
@@ -334,13 +346,13 @@ func Chat(c *gin.Context) {
 		return
 	}
 	defer resp.Body.Close()
-	
+
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("OpenClaw 返回错误: %d, %s", resp.StatusCode, string(body))})
 		return
 	}
-	
+
 	// 4. 解析 OpenAI 格式的响应
 	var openaiResp struct {
 		Choices []struct {
@@ -349,13 +361,13 @@ func Chat(c *gin.Context) {
 			} `json:"message"`
 		} `json:"choices"`
 	}
-	
+
 	body, _ := io.ReadAll(resp.Body)
 	if err := json.Unmarshal(body, &openaiResp); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("解析响应失败: %v, body: %s", err, string(body))})
 		return
 	}
-	
+
 	responseText := ""
 	if len(openaiResp.Choices) > 0 {
 		responseText = openaiResp.Choices[0].Message.Content
@@ -372,13 +384,13 @@ func Chat(c *gin.Context) {
 
 	// 6. 返回结果（不释放容器，保持会话）
 	c.JSON(http.StatusOK, gin.H{
-		"success":          true,
-		"agent_id":         req.AgentID,
-		"message":          req.Message,
-		"response":         responseText,
-		"conversation_id":  conv.ID,
-		"container":        container.PodName,
-		"timestamp":        time.Now().Format(time.RFC3339),
+		"success":         true,
+		"agent_id":        req.AgentID,
+		"message":         req.Message,
+		"response":        responseText,
+		"conversation_id": conv.ID,
+		"container":       container.PodName,
+		"timestamp":       time.Now().Format(time.RFC3339),
 	})
 }
 
@@ -405,10 +417,61 @@ func GetChatHistory(c *gin.Context) {
 	})
 }
 
+func writeSSEJSON(w io.Writer, flusher http.Flusher, payload interface{}) {
+	data, err := json.Marshal(payload)
+	if err != nil {
+		return
+	}
+	fmt.Fprintf(w, "data: %s\n\n", string(data))
+	flusher.Flush()
+}
+
+func writeSSEError(w io.Writer, flusher http.Flusher, message string) {
+	writeSSEJSON(w, flusher, gin.H{
+		"type":    "error",
+		"content": message,
+	})
+}
+
+func writeSSEStatus(w io.Writer, flusher http.Flusher, message string) {
+	writeSSEJSON(w, flusher, gin.H{
+		"type":    "status",
+		"content": message,
+	})
+}
+
+func writeSSEComment(w io.Writer, flusher http.Flusher, message string) {
+	fmt.Fprintf(w, ": %s\n\n", message)
+	flusher.Flush()
+}
+
+func writeSSEChunk(w io.Writer, flusher http.Flusher, requestID, content string) {
+	if content == "" {
+		return
+	}
+
+	sseData := map[string]interface{}{
+		"id":      requestID,
+		"object":  "chat.completion.chunk",
+		"created": time.Now().Unix(),
+		"model":   "openclaw-agent",
+		"choices": []map[string]interface{}{
+			{
+				"index": 0,
+				"delta": map[string]interface{}{
+					"content": content,
+				},
+				"finish_reason": nil,
+			},
+		},
+	}
+	writeSSEJSON(w, flusher, sseData)
+}
+
 // ChatStream 流式对话接口 (SSE) - 使用 WebSocket 连接 OpenClaw
 func ChatStream(c *gin.Context) {
 	fmt.Printf("🔵 [ChatStream] 收到请求 from %s\n", c.ClientIP())
-	
+
 	var req struct {
 		AgentID string `json:"agent_id"`
 		Message string `json:"message"`
@@ -419,7 +482,7 @@ func ChatStream(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "参数错误"})
 		return
 	}
-	
+
 	fmt.Printf("✅ [ChatStream] 解析成功 - AgentID: %s, Message: %s\n", req.AgentID, req.Message)
 
 	if req.AgentID == "" || req.Message == "" {
@@ -428,50 +491,54 @@ func ChatStream(c *gin.Context) {
 		return
 	}
 
-	// 1. 分配容器
-	fmt.Printf("⏳ [ChatStream] 开始分配容器...\n")
-	container, err := k8s.AllocateContainer(req.AgentID)
-	if err != nil {
-		fmt.Printf("❌ [ChatStream] 容器分配失败: %v\n", err)
-		c.JSON(http.StatusServiceUnavailable, gin.H{"error": err.Error()})
-		return
-	}
-	fmt.Printf("✅ [ChatStream] 容器分配成功 - Pod: %s, IP: %s\n", container.PodName, container.IP)
-
-	// 2. 确保智能体在容器中已注册
-	agentDir := fmt.Sprintf("/data/agents/%s/agent", req.AgentID)
-	workspaceDir := fmt.Sprintf("/data/agents/%s", req.AgentID)
-	addCmd := []string{"node", "openclaw.mjs", "agents", "add", req.AgentID, "--workspace", workspaceDir, "--agent-dir", agentDir, "--non-interactive"}
-	_, _, _ = k8s.ExecCommand("openclaw", container.PodName, addCmd)
-
-	// 3. 获取 WebSocket 连接（复用已有连接）
-	pool := getWSPool()
-	conn, err := pool.GetConn(container.IP)
-	if err != nil {
-		fmt.Printf("❌ [ChatStream] WebSocket 连接失败: %v\n", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("连接失败: %v", err)})
-		return
-	}
-	fmt.Printf("✅ [ChatStream] WebSocket 连接就绪\n")
-
-	// 4. 设置 SSE 响应头（对前端仍然是 HTTP SSE）
 	c.Header("Content-Type", "text/event-stream; charset=utf-8")
 	c.Header("Cache-Control", "no-cache")
 	c.Header("Connection", "keep-alive")
 	c.Header("X-Accel-Buffering", "no")
-	
+
 	flusher, ok := c.Writer.(http.Flusher)
 	if !ok {
 		fmt.Printf("❌ [ChatStream] Writer 不支持 Flush\n")
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "不支持流式传输"})
 		return
 	}
-	
-	// 立即发送一个初始事件，确保响应头真正发送
+
 	c.Status(http.StatusOK)
 	fmt.Fprintf(c.Writer, ": connected\n\n")
 	flusher.Flush()
 	fmt.Printf("📤 [ChatStream] SSE 响应头已发送\n")
+	writeSSEStatus(c.Writer, flusher, "正在分配容器...")
+
+	// 1. 分配容器
+	fmt.Printf("⏳ [ChatStream] 开始分配容器...\n")
+	container, err := k8s.AllocateContainer(req.AgentID)
+	if err != nil {
+		fmt.Printf("❌ [ChatStream] 容器分配失败: %v\n", err)
+		writeSSEError(c.Writer, flusher, err.Error())
+		return
+	}
+	fmt.Printf("✅ [ChatStream] 容器分配成功 - Pod: %s, IP: %s\n", container.PodName, container.IP)
+	writeSSEStatus(c.Writer, flusher, fmt.Sprintf("容器已就绪：%s，正在准备智能体...", container.PodName))
+
+	// 2. 确保智能体在容器中已注册
+	if err := k8s.EnsureAgentReady(req.AgentID, container); err != nil {
+		fmt.Printf("❌ [ChatStream] 智能体准备失败: %v\n", err)
+		writeSSEError(c.Writer, flusher, err.Error())
+		return
+	}
+	writeSSEStatus(c.Writer, flusher, "智能体已就绪，正在建立流式连接...")
+
+	// 3. 获取 WebSocket 连接（复用已有连接）
+	pool := getWSPool()
+	conn, err := pool.GetConn(container.IP)
+	if err != nil {
+		fmt.Printf("❌ [ChatStream] WebSocket 连接失败: %v\n", err)
+		writeSSEError(c.Writer, flusher, fmt.Sprintf("连接失败: %v", err))
+		return
+	}
+	defer conn.Close()
+	fmt.Printf("✅ [ChatStream] WebSocket 连接就绪\n")
+	writeSSEStatus(c.Writer, flusher, "流式连接已建立，正在等待模型响应...")
 
 	// 5. 生成请求 ID 和 SessionKey（用于区分多个 Agent 在同一个 WS 连接上的会话）
 	requestID := uuid.New().String()
@@ -484,9 +551,9 @@ func ChatStream(c *gin.Context) {
 		"id":     requestID,
 		"method": "chat.send",
 		"params": map[string]interface{}{
-			"sessionKey":      sessionKey,
-			"message":         req.Message,
-			"idempotencyKey":  requestID, // 必需参数！
+			"sessionKey":     sessionKey,
+			"message":        req.Message,
+			"idempotencyKey": requestID, // 必需参数！
 		},
 	}
 
@@ -494,10 +561,10 @@ func ChatStream(c *gin.Context) {
 	fmt.Printf("🔍 [Debug] 准备调用 WriteJSON...\n")
 	err = conn.WriteJSON(chatReq)
 	fmt.Printf("🔍 [Debug] WriteJSON 完成，err=%v\n", err)
-	
+
 	if err != nil {
 		fmt.Printf("❌ [ChatStream] 发送请求失败: %v\n", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "发送请求失败"})
+		writeSSEError(c.Writer, flusher, "发送请求失败")
 		return
 	}
 	fmt.Printf("✅ [Debug] WriteJSON 成功\n")
@@ -505,41 +572,53 @@ func ChatStream(c *gin.Context) {
 	// 7. 实时监听 WebSocket 事件并转换为 SSE
 	fullResponse := ""
 	done := false
-	timeout := time.After(120 * time.Second)
+	timeout := time.After(180 * time.Second)
+	requestContext := c.Request.Context()
+	consecutiveReadTimeouts := 0
 
 	fmt.Printf("⏳ [ChatStream] 开始监听 WebSocket 事件...\n")
 
 	for !done {
 		select {
+		case <-requestContext.Done():
+			fmt.Printf("🛑 [ChatStream] 客户端已断开\n")
+			done = true
 		case <-timeout:
 			fmt.Printf("⏰ [ChatStream] 超时\n")
-			fmt.Fprintf(c.Writer, "data: {\"type\":\"error\",\"content\":\"超时\"}\n\n")
-			flusher.Flush()
+			writeSSEError(c.Writer, flusher, "超时")
 			done = true
 
 		default:
-			// 设置读超时（延长到60秒，给模型推理足够时间）
-			conn.SetReadDeadline(time.Now().Add(60 * time.Second))
-			
+			conn.SetReadDeadline(time.Now().Add(15 * time.Second))
+
 			fmt.Printf("🔍 [Debug] 开始 ReadJSON...\n")
 			var frame map[string]interface{}
 			err := conn.ReadJSON(&frame)
 			fmt.Printf("🔍 [Debug] ReadJSON 完成, err=%v\n", err)
-			
+
 			if err != nil {
 				if netErr, ok := err.(interface{ Timeout() bool }); ok && netErr.Timeout() {
-					// 读超时，继续等待
-					fmt.Printf("⏱️  [ChatStream] 读取超时（60秒），继续等待...\n")
+					consecutiveReadTimeouts++
+					fmt.Printf("⏱️  [ChatStream] 读取超时（15秒），继续等待... 连续超时=%d\n", consecutiveReadTimeouts)
+					if consecutiveReadTimeouts >= 4 {
+						writeSSEError(c.Writer, flusher, "模型响应超时")
+						done = true
+						break
+					}
+					writeSSEComment(c.Writer, flusher, "heartbeat")
 					continue
 				}
 				fmt.Printf("❌ [ChatStream] 读取错误: %v\n", err)
+				writeSSEError(c.Writer, flusher, "流式连接中断")
 				done = true
 				break
 			}
 
+			consecutiveReadTimeouts = 0
+
 			frameType, _ := frame["type"].(string)
 			eventName, _ := frame["event"].(string)
-			
+
 			// 调试：打印所有收到的帧
 			fmt.Printf("📦 [Debug] 收到帧 - type: %s, event: %s\n", frameType, eventName)
 			if frameType == "event" && eventName != "" {
@@ -554,8 +633,7 @@ func ChatStream(c *gin.Context) {
 					if !ok {
 						errorData, _ := json.Marshal(frame["error"])
 						fmt.Printf("❌ [ChatStream] 请求失败: %s\n", errorData)
-						fmt.Fprintf(c.Writer, "data: {\"type\":\"error\",\"content\":\"请求失败\"}\n\n")
-						flusher.Flush()
+						writeSSEError(c.Writer, flusher, "请求失败")
 						done = true
 					}
 					fmt.Printf("✅ [ChatStream] 请求已接受\n")
@@ -573,11 +651,30 @@ func ChatStream(c *gin.Context) {
 					fmt.Printf("📢 [Debug] Agent 事件: %s\n", string(payloadJSON))
 				}
 
-				// 只处理 chat 事件
+				if eventName == "agent" {
+					payloadSessionKey, _ := payload["sessionKey"].(string)
+					if !strings.Contains(payloadSessionKey, sessionKey) {
+						continue
+					}
+
+					streamName, _ := payload["stream"].(string)
+					data, _ := payload["data"].(map[string]interface{})
+
+					if streamName == "assistant" && data != nil {
+						delta, _ := data["delta"].(string)
+						if delta != "" {
+							fullResponse += delta
+							fmt.Printf("💬 [ChatStream] 实时输出(delta): %s\n", delta)
+							writeSSEChunk(c.Writer, flusher, requestID, delta)
+						}
+					}
+				}
+
+				// chat 事件主要用于兜底补全和结束信号
 				if eventName == "chat" {
 					fmt.Printf("💬 [Debug] 收到 chat 事件！\n")
 					payloadSessionKey, _ := payload["sessionKey"].(string)
-					
+
 					// OpenClaw 返回的 sessionKey 是完整格式：agent:main:session-xxx
 					// 我们只需要检查是否包含我们的 sessionKey 作为后缀
 					if !strings.Contains(payloadSessionKey, sessionKey) {
@@ -587,7 +684,7 @@ func ChatStream(c *gin.Context) {
 					state, _ := payload["state"].(string)
 					message, _ := payload["message"].(map[string]interface{})
 
-					// 处理 assistant 消息（从 message.content 提取）
+					// 处理 assistant 消息（只作为兜底，避免 agent.delta 缺失时完全无输出）
 					if message != nil {
 						role, _ := message["role"].(string)
 						if role == "assistant" {
@@ -607,27 +704,8 @@ func ChatStream(c *gin.Context) {
 							}
 
 							if content != "" {
-								fmt.Printf("💬 [ChatStream] 实时输出: %s\n", content)
-
-								// 转换为前端 SSE 格式（OpenAI 兼容）
-								sseData := map[string]interface{}{
-									"id":      requestID,
-									"object":  "chat.completion.chunk",
-									"created": time.Now().Unix(),
-									"model":   "ollama/gemma4:e4b",
-									"choices": []map[string]interface{}{
-										{
-											"index": 0,
-											"delta": map[string]interface{}{
-												"content": content,
-											},
-											"finish_reason": nil,
-										},
-									},
-								}
-								jsonData, _ := json.Marshal(sseData)
-								fmt.Fprintf(c.Writer, "data: %s\n\n", string(jsonData))
-								flusher.Flush()
+								fmt.Printf("💬 [ChatStream] 兜底输出(chat): %s\n", content)
+								writeSSEChunk(c.Writer, flusher, requestID, content)
 							}
 						}
 					}
@@ -643,8 +721,7 @@ func ChatStream(c *gin.Context) {
 					// 处理错误
 					if state == "error" {
 						fmt.Printf("❌ [ChatStream] Agent 错误\n")
-						fmt.Fprintf(c.Writer, "data: {\"type\":\"error\",\"content\":\"Agent 错误\"}\n\n")
-						flusher.Flush()
+						writeSSEError(c.Writer, flusher, "Agent 错误")
 						done = true
 					}
 				}

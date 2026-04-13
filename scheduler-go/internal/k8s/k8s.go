@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"math/rand"
+	"strings"
 	"sync"
 
 	corev1 "k8s.io/api/core/v1"
@@ -20,21 +21,34 @@ import (
 )
 
 var (
-	clientset *kubernetes.Clientset
-	restConfig *rest.Config
-	poolStatus = make(map[string]PoolStatus)
-	agentSessions = make(map[string]string)
-	mu sync.RWMutex
+	clientset          *kubernetes.Clientset
+	restConfig         *rest.Config
+	poolStatus         = make(map[string]PoolStatus)
+	agentSessions      = make(map[string]string)
+	agentRegistrations = make(map[string]string)
+	mu                 sync.RWMutex
+	initialized        bool
+	initMu             sync.RWMutex
 )
 
 type PoolStatus struct {
-	Status    string `json:"status"`     // idle, busy
+	Status    string `json:"status"` // idle, busy
 	AgentID   string `json:"agent_id"`
 	Allocated int64  `json:"allocated_at"`
 }
 
+// IsInitialized 检查 K8s 客户端是否已初始化
+func IsInitialized() bool {
+	initMu.RLock()
+	defer initMu.RUnlock()
+	return initialized
+}
+
 // InitK8s 初始化 K8s 客户端
 func InitK8s() error {
+	initMu.Lock()
+	defer initMu.Unlock()
+
 	var err error
 
 	// 尝试集群内配置
@@ -54,6 +68,7 @@ func InitK8s() error {
 	}
 
 	log.Println("✅ K8s 客户端初始化成功")
+	initialized = true
 	return nil
 }
 
@@ -93,8 +108,37 @@ func ExecCommand(namespace, podName string, command []string) (string, string, e
 	return stdout.String(), stderr.String(), nil
 }
 
-// AllocateContainer 分配容器
+// AllocateContainerByKernel 根据内核类型分配容器
+func AllocateContainerByKernel(kernelType, agentID string) (*models.ContainerStatus, error) {
+	// 检查 K8s 客户端是否已初始化
+	if !IsInitialized() {
+		return nil, fmt.Errorf("K8s 客户端尚未初始化，请稍后重试")
+	}
+
+	// 根据内核类型确定 label selector
+	var labelSelector string
+	switch kernelType {
+	case "openclaw":
+		labelSelector = "app=openclaw-pool"
+	case "qwenpaw":
+		labelSelector = "app=qwenpaw-pool"
+	default:
+		// 默认使用 openclaw
+		labelSelector = "app=openclaw-pool"
+		log.Printf("⚠️  [AllocateContainerByKernel] 未知内核类型 %s，使用 openclaw", kernelType)
+	}
+
+	log.Printf("🔧 [AllocateContainerByKernel] 内核类型: %s, LabelSelector: %s", kernelType, labelSelector)
+	return allocateContainerWithSelector(agentID, labelSelector)
+}
+
+// AllocateContainer 分配容器（保留原接口，默认使用 OpenClaw）
 func AllocateContainer(agentID string) (*models.ContainerStatus, error) {
+	return AllocateContainerByKernel("openclaw", agentID)
+}
+
+// allocateContainerWithSelector 根据 label selector 分配容器
+func allocateContainerWithSelector(agentID, labelSelector string) (*models.ContainerStatus, error) {
 	mu.Lock()
 	defer mu.Unlock()
 
@@ -117,9 +161,9 @@ func AllocateContainer(agentID string) (*models.ContainerStatus, error) {
 		delete(poolStatus, podName)
 	}
 
-	// 获取所有 openclaw-pool 的 Pod
+	// 获取指定 label 的 Pod
 	pods, err := clientset.CoreV1().Pods("openclaw").List(context.TODO(), metav1.ListOptions{
-		LabelSelector: "app=openclaw-pool",
+		LabelSelector: labelSelector,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("获取 Pod 列表失败: %v", err)
@@ -163,6 +207,50 @@ func AllocateContainer(agentID string) (*models.ContainerStatus, error) {
 		IP:      pod.Status.PodIP,
 		Node:    pod.Spec.NodeName,
 	}, nil
+}
+
+func EnsureAgentReady(agentID string, container *models.ContainerStatus) error {
+	mu.RLock()
+	registeredPod, exists := agentRegistrations[agentID]
+	mu.RUnlock()
+
+	if exists && registeredPod == container.PodName {
+		return nil
+	}
+
+	agentDir := fmt.Sprintf("/data/agents/%s/agent", agentID)
+	workspaceDir := fmt.Sprintf("/data/agents/%s", agentID)
+	addCmd := []string{"node", "openclaw.mjs", "agents", "add", agentID, "--workspace", workspaceDir, "--agent-dir", agentDir, "--non-interactive"}
+
+	stdout, stderr, err := ExecCommand("openclaw", container.PodName, addCmd)
+	if err != nil {
+		if strings.Contains(stderr, "already exists") {
+			mu.Lock()
+			agentRegistrations[agentID] = container.PodName
+			mu.Unlock()
+			return nil
+		}
+		return fmt.Errorf("准备智能体失败: %v, stdout: %s, stderr: %s", err, stdout, stderr)
+	}
+
+	mu.Lock()
+	agentRegistrations[agentID] = container.PodName
+	mu.Unlock()
+
+	return nil
+}
+
+func WarmAgent(agentID string) (*models.ContainerStatus, error) {
+	container, err := AllocateContainer(agentID)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := EnsureAgentReady(agentID, container); err != nil {
+		return nil, err
+	}
+
+	return container, nil
 }
 
 // ReleaseContainer 释放容器
@@ -212,9 +300,10 @@ func GetPoolStatus() (map[string]interface{}, error) {
 	}
 
 	return map[string]interface{}{
-		"pool_status":     poolStatus,
-		"agent_sessions":  agentSessions,
-		"pods":            podInfos,
-		"total_pods":      len(pods.Items),
+		"pool_status":       poolStatus,
+		"agent_sessions":    agentSessions,
+		"registered_agents": agentRegistrations,
+		"pods":              podInfos,
+		"total_pods":        len(pods.Items),
 	}, nil
 }
