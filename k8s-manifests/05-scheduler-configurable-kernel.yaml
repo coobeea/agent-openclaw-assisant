@@ -53,6 +53,9 @@ spec:
         envFrom:
         - configMapRef:
             name: scheduler-config
+        volumeMounts:
+        - name: agents-workspace
+          mountPath: /data/agents
         resources:
           requests:
             memory: "256Mi"
@@ -72,6 +75,11 @@ spec:
             port: 8080
           initialDelaySeconds: 5
           periodSeconds: 5
+      volumes:
+      - name: agents-workspace
+        hostPath:
+          path: /Users/lifeng/git/git-claw/agent-openclaw-assisant/workspace
+          type: DirectoryOrCreate
 
 ---
 apiVersion: v1

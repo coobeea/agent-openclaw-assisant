@@ -7,6 +7,7 @@ import (
 	"os"
 	"time"
 
+	"openclaw-scheduler/internal/db"
 	"openclaw-scheduler/internal/k8s"
 	"openclaw-scheduler/internal/kernel"
 	_ "openclaw-scheduler/internal/kernel/adapters" // 触发自动注册
@@ -104,18 +105,30 @@ func ChatStreamV2(c *gin.Context) {
 
 	writeSSEStatus(c.Writer, flusher, "内核已就绪，正在发送消息...")
 
-	// 7. 生成 SessionKey
+	// 7. 从数据库查询 agent 的 workspace 路径
+	agents, err := db.ListAgents(0) // 查询所有 agents
+	var workspacePath string
+	for _, agent := range agents {
+		if agent.AgentID == req.AgentID {
+			workspacePath = agent.WorkspacePath
+			fmt.Printf("📂 [ChatStreamV2] Agent workspace: %s\n", workspacePath)
+			break
+		}
+	}
+
+	// 8. 生成 SessionKey
 	sessionKey := fmt.Sprintf("session-%s-%s", req.AgentID, uuid.New().String()[:8])
 	requestID := uuid.New().String()
 	fmt.Printf("📝 [ChatStreamV2] SessionKey: %s, RequestID: %s\n", sessionKey, requestID)
 
-	// 8. 发送聊天请求（统一接口）
+	// 9. 发送聊天请求（统一接口，包含 workspace）
 	chatReq := &kernel.ChatRequest{
-		AgentID:    req.AgentID,
-		SessionKey: sessionKey,
-		Message:    req.Message,
-		UserID:     c.GetString("user_id"), // 从认证中获取
-		RequestID:  requestID,
+		AgentID:       req.AgentID,
+		SessionKey:    sessionKey,
+		Message:       req.Message,
+		UserID:        c.GetString("user_id"), // 从认证中获取
+		WorkspacePath: workspacePath,          // 传递 workspace 路径
+		RequestID:     requestID,
 	}
 
 	streamCtx, streamCancel := context.WithTimeout(c.Request.Context(), 3*time.Minute)

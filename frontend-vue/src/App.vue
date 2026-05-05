@@ -108,7 +108,18 @@
                 <div class="agent-avatar">{{ agent.name.charAt(0) }}</div>
                 <div class="agent-info">
                   <div class="agent-name">{{ agent.name }}</div>
-                  <div class="agent-desc">{{ agent.description || '暂无描述' }}</div>
+                  <div class="agent-desc">
+                    {{ agent.description || '暂无描述' }}
+                    <el-tag 
+                      v-if="agent.config" 
+                      size="small" 
+                      :type="getKernelTagType(agent.config)" 
+                      effect="plain"
+                      style="margin-left: 8px;"
+                    >
+                      {{ getKernelName(agent.config) }}
+                    </el-tag>
+                  </div>
                 </div>
                 <div class="agent-status" :class="{ active: currentAgent?.agent_id === agent.agent_id }">
                   <span class="status-dot"></span>
@@ -265,6 +276,33 @@
           ></el-input>
         </el-form-item>
         <el-form-item>
+          <div class="form-label">AI 内核</div>
+          <el-select 
+            v-model="agentForm.kernel" 
+            placeholder="选择 AI 内核" 
+            size="large"
+            style="width: 100%"
+          >
+            <el-option label="OpenClaw（推荐）" value="openclaw">
+              <span style="display: flex; align-items: center; gap: 8px;">
+                <span style="font-size: 18px;">🚀</span>
+                <span>OpenClaw</span>
+                <el-tag type="success" size="small" effect="plain">推荐</el-tag>
+              </span>
+            </el-option>
+            <el-option label="QwenPaw（实验性）" value="qwenpaw">
+              <span style="display: flex; align-items: center; gap: 8px;">
+                <span style="font-size: 18px;">🐾</span>
+                <span>QwenPaw</span>
+                <el-tag type="warning" size="small" effect="plain">实验性</el-tag>
+              </span>
+            </el-option>
+          </el-select>
+          <div style="font-size: 12px; color: #909399; margin-top: 8px;">
+            💡 选择后不可更改，不同内核有不同的特性
+          </div>
+        </el-form-item>
+        <el-form-item>
           <div class="form-label">智能体描述</div>
           <el-input 
             v-model="agentForm.description" 
@@ -312,7 +350,8 @@ const dialogVisible = ref(false)
 const creating = ref(false)
 const agentForm = reactive({
   name: '',
-  description: ''
+  description: '',
+  kernel: 'openclaw'  // 默认使用 OpenClaw
 })
 
 // 对话相关
@@ -387,16 +426,18 @@ const handleCreateAgent = async () => {
     await createAgent({
       user_id: userInfo.value.user_id,
       name: agentForm.name,
-      description: agentForm.description
+      description: agentForm.description,
+      kernel_type: agentForm.kernel  // 传递内核类型
     })
     ElMessage.success({
-      message: '创建成功！',
+      message: `创建成功！使用 ${agentForm.kernel === 'openclaw' ? 'OpenClaw' : 'QwenPaw'} 内核`,
       type: 'success',
       duration: 2000
     })
     dialogVisible.value = false
     agentForm.name = ''
     agentForm.description = ''
+    agentForm.kernel = 'openclaw'
     loadAgents()
   } catch (error) {
     ElMessage.error('创建失败')
@@ -532,10 +573,24 @@ const sendMessage = async () => {
   }
 
   try {
+    // 从 agent.config 中提取内核类型
+    let kernelType = 'openclaw'  // 默认值
+    if (currentAgent.value.config) {
+      try {
+        const config = JSON.parse(currentAgent.value.config)
+        kernelType = config.kernel_type || 'openclaw'
+      } catch (e) {
+        console.warn('解析 agent config 失败，使用默认内核:', e)
+      }
+    }
+    
+    console.log(`💡 [SendMessage] 使用内核: ${kernelType}, Agent: ${currentAgent.value.agent_id}`)
+    
     const xhr = new XMLHttpRequest()
-    xhr.open('POST', '/api/chat/stream', true)
+    xhr.open('POST', '/api/chat/stream/v2', true)  // 使用 V2 API
     xhr.setRequestHeader('Content-Type', 'application/json')
     xhr.setRequestHeader('Cache-Control', 'no-cache')
+    xhr.setRequestHeader('X-Kernel-Type', kernelType)  // 传递内核类型
     
     let lastIndex = 0
     
@@ -599,6 +654,26 @@ const scrollToBottom = () => {
     if (wrap) {
       wrap.scrollTop = wrap.scrollHeight
     }
+  }
+}
+
+// 获取内核显示名称
+const getKernelName = (configStr) => {
+  try {
+    const config = JSON.parse(configStr)
+    return config.kernel_type === 'qwenpaw' ? '🐾 QwenPaw' : '🚀 OpenClaw'
+  } catch (e) {
+    return '🚀 OpenClaw'
+  }
+}
+
+// 获取内核标签类型
+const getKernelTagType = (configStr) => {
+  try {
+    const config = JSON.parse(configStr)
+    return config.kernel_type === 'qwenpaw' ? 'warning' : 'success'
+  } catch (e) {
+    return 'success'
   }
 }
 

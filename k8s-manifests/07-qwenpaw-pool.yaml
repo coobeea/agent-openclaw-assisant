@@ -1,0 +1,62 @@
+# QwenPaw Pool 部署配置（低资源版本）
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: qwenpaw-pool
+  namespace: openclaw
+  labels:
+    app: qwenpaw-pool
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: qwenpaw-pool
+  template:
+    metadata:
+      labels:
+        app: qwenpaw-pool
+    spec:
+      containers:
+      - name: qwenpaw
+        image: agentscope/qwenpaw:latest
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 8088
+          name: http
+        env:
+        - name: QWENPAW_PORT
+          value: "8088"
+        - name: QWENPAW_AUTH_ENABLED
+          value: "false"
+        - name: OLLAMA_HOST
+          value: "http://host.docker.internal:11434"
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "100m"
+          limits:
+            memory: "1Gi"
+            cpu: "500m"
+        volumeMounts:
+        - name: agents-workspace
+          mountPath: /data/agents
+      volumes:
+      - name: agents-workspace
+        hostPath:
+          path: /Users/lifeng/git/git-claw/agent-openclaw-assisant/workspace
+          type: DirectoryOrCreate
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: qwenpaw-pool
+  namespace: openclaw
+spec:
+  selector:
+    app: qwenpaw-pool
+  ports:
+  - port: 8088
+    targetPort: 8088
+    name: http
+  type: ClusterIP

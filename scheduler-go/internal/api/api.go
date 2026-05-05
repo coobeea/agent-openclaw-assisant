@@ -168,9 +168,11 @@ func LoginUser(c *gin.Context) {
 
 func CreateAgent(c *gin.Context) {
 	var req struct {
-		UserID      int    `json:"user_id"`
-		Name        string `json:"name"`
-		Description string `json:"description"`
+		UserID      int                    `json:"user_id"`
+		Name        string                 `json:"name"`
+		Description string                 `json:"description"`
+		KernelType  string                 `json:"kernel_type"`  // 内核类型
+		ModelConfig map[string]interface{} `json:"model_config"` // 模型配置（可选）
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -183,6 +185,17 @@ func CreateAgent(c *gin.Context) {
 		return
 	}
 
+	// 默认使用 openclaw 内核
+	if req.KernelType == "" {
+		req.KernelType = "openclaw"
+	}
+
+	// 验证内核类型
+	if req.KernelType != "openclaw" && req.KernelType != "qwenpaw" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "不支持的内核类型，请选择 openclaw 或 qwenpaw"})
+		return
+	}
+
 	// 生成 agent_id
 	agentID := fmt.Sprintf("agent-%d-%d", req.UserID, time.Now().Unix())
 
@@ -190,25 +203,71 @@ func CreateAgent(c *gin.Context) {
 	workspacePath := fmt.Sprintf("/data/agents/%s", agentID)
 	os.MkdirAll(workspacePath, 0755)
 
-	agent, err := db.CreateAgent(agentID, req.UserID, req.Name, req.Description, workspacePath)
+	// 写入 config.json 到 workspace
+	configData := map[string]interface{}{
+		"kernel_type": req.KernelType,
+		"agent_info": map[string]string{
+			"name":        req.Name,
+			"description": req.Description,
+		},
+	}
+
+	// 如果提供了模型配置，使用用户配置；否则使用默认配置
+	if req.ModelConfig != nil && len(req.ModelConfig) > 0 {
+		configData["model"] = req.ModelConfig
+	} else {
+		// 默认模型配置
+		if req.KernelType == "qwenpaw" {
+			configData["model"] = map[string]interface{}{
+				"provider":    "ollama",
+				"model_name":  "gemma4:e4b",
+				"base_url":    "http://host.docker.internal:11434",
+				"temperature": 0.7,
+				"max_tokens":  2000,
+			}
+		} else if req.KernelType == "openclaw" {
+			configData["model"] = map[string]interface{}{
+				"provider":    "ollama",
+				"model_name":  "gemma4:e4b",
+				"base_url":    "http://host.docker.internal:11434",
+				"temperature": 0.7,
+			}
+		}
+	}
+
+	// 写入 config.json
+	configPath := fmt.Sprintf("%s/config.json", workspacePath)
+	configJSON, _ := json.MarshalIndent(configData, "", "  ")
+	if err := os.WriteFile(configPath, configJSON, 0644); err != nil {
+		log.Printf("⚠️  [CreateAgent] Failed to write config.json: %v", err)
+	} else {
+		log.Printf("✅ [CreateAgent] Config written to: %s", configPath)
+	}
+
+	// 保存 agent 信息（包含内核类型）
+	log.Printf("🔧 [CreateAgent] Creating agent with kernel: %s", req.KernelType)
+	agent, err := db.CreateAgentWithKernel(agentID, req.UserID, req.Name, req.Description, workspacePath, req.KernelType)
 	if err != nil {
+		log.Printf("❌ [CreateAgent] Failed to create agent: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
+	log.Printf("✅ [CreateAgent] Agent created successfully: %s, config: %s", agent.AgentID, agent.Config)
 
-	go func(agentID string) {
-		container, warmErr := k8s.WarmAgent(agentID)
+	go func(agentID, kernelType string) {
+		container, warmErr := k8s.AllocateContainerByKernel(kernelType, agentID)
 		if warmErr != nil {
-			log.Printf("⚠️  [CreateAgent] 智能体预热失败: %s, err=%v", agentID, warmErr)
+			log.Printf("⚠️  [CreateAgent] 智能体预热失败: %s, kernel=%s, err=%v", agentID, kernelType, warmErr)
 			return
 		}
-		log.Printf("🔥 [CreateAgent] 智能体预热完成: %s -> %s", agentID, container.PodName)
-	}(agent.AgentID)
+		log.Printf("🔥 [CreateAgent] 智能体预热完成: %s -> %s (kernel: %s)", agentID, container.PodName, kernelType)
+	}(agent.AgentID, req.KernelType)
 
 	c.JSON(http.StatusOK, gin.H{
 		"success":        true,
 		"agent_id":       agent.AgentID,
 		"name":           agent.Name,
+		"kernel_type":    req.KernelType,
 		"workspace_path": agent.WorkspacePath,
 		"warming":        true,
 	})
@@ -236,7 +295,8 @@ func ListAgents(c *gin.Context) {
 
 func AllocateContainer(c *gin.Context) {
 	var req struct {
-		AgentID string `json:"agent_id"`
+		AgentID    string `json:"agent_id"`
+		KernelType string `json:"kernel_type"` // 新增：内核类型
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -249,7 +309,13 @@ func AllocateContainer(c *gin.Context) {
 		return
 	}
 
-	status, err := k8s.AllocateContainer(req.AgentID)
+	// 默认使用 openclaw 内核
+	kernelType := req.KernelType
+	if kernelType == "" {
+		kernelType = "openclaw"
+	}
+
+	status, err := k8s.AllocateContainerByKernel(kernelType, req.AgentID)
 	if err != nil {
 		c.JSON(http.StatusServiceUnavailable, gin.H{"error": err.Error()})
 		return

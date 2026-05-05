@@ -17,6 +17,7 @@ type Agent struct {
 	UserID        int       `json:"user_id" db:"user_id"`
 	Name          string    `json:"name" db:"name"`
 	Description   string    `json:"description" db:"description"`
+	Config        string    `json:"config" db:"config"`  // JSONB 字段，包含 kernel_type 等配置
 	WorkspacePath string    `json:"workspace_path" db:"workspace_path"`
 	CreatedAt     time.Time `json:"created_at" db:"created_at"`
 	UpdatedAt     time.Time `json:"updated_at" db:"updated_at"`

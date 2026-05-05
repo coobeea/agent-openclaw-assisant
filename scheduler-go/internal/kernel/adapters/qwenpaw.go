@@ -10,6 +10,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"os"
 	"strings"
 	"sync"
 	"time"
@@ -72,6 +73,9 @@ func (a *QwenPawAdapter) StreamChat(ctx context.Context, req *kernel.ChatRequest
 	// Create event channel
 	eventChan := make(chan kernel.ChatEvent, 100)
 
+	// Read model config from workspace (if exists)
+	modelConfig := a.readWorkspaceConfig(req.WorkspacePath)
+
 	// Construct QwenPaw request payload
 	// Based on QwenPaw's API: POST /api/console/chat
 	qwenReq := map[string]interface{}{
@@ -82,10 +86,16 @@ func (a *QwenPawAdapter) StreamChat(ctx context.Context, req *kernel.ChatRequest
 				"text": req.Message,
 			},
 		},
-		"meta": map[string]string{
+		"meta": map[string]interface{}{
 			"session_id": req.SessionKey,
 			"user_id":    req.UserID,
 		},
+	}
+
+	// Add model config if available
+	if modelConfig != nil {
+		qwenReq["model_config"] = modelConfig
+		log.Printf("📝 [QwenPawAdapter] Using model config from workspace: %v", modelConfig)
 	}
 
 	// Serialize payload
@@ -106,7 +116,9 @@ func (a *QwenPawAdapter) StreamChat(ctx context.Context, req *kernel.ChatRequest
 	// Set headers
 	httpReq.Header.Set("Content-Type", "application/json")
 	httpReq.Header.Set("Accept", "text/event-stream")
-	httpReq.Header.Set("X-Agent-Id", req.AgentID)
+	// Use QwenPaw's default agent instead of our agent_id
+	// QwenPaw manages its own agents, we use "default" for all requests
+	httpReq.Header.Set("X-Agent-Id", "default")
 
 	// Add authentication if configured
 	if a.config.Auth != nil {
@@ -382,4 +394,31 @@ func min(a, b int) int {
 		return a
 	}
 	return b
+}
+
+// readWorkspaceConfig reads model config from agent workspace
+func (a *QwenPawAdapter) readWorkspaceConfig(workspacePath string) map[string]interface{} {
+	if workspacePath == "" {
+		return nil
+	}
+
+	configPath := fmt.Sprintf("%s/config.json", workspacePath)
+	data, err := os.ReadFile(configPath)
+	if err != nil {
+		log.Printf("⚠️  [QwenPawAdapter] Failed to read config from %s: %v", configPath, err)
+		return nil
+	}
+
+	var config map[string]interface{}
+	if err := json.Unmarshal(data, &config); err != nil {
+		log.Printf("⚠️  [QwenPawAdapter] Failed to parse config.json: %v", err)
+		return nil
+	}
+
+	// Extract model config
+	if modelCfg, ok := config["model"].(map[string]interface{}); ok {
+		return modelCfg
+	}
+
+	return nil
 }

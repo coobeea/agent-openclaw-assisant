@@ -114,24 +114,40 @@ func GetUserByCredentials(username, password string) (*models.User, error) {
 
 // CreateAgent 创建智能体
 func CreateAgent(agentID string, userID int, name, description, workspacePath string) (*models.Agent, error) {
+	return CreateAgentWithKernel(agentID, userID, name, description, workspacePath, "openclaw")
+}
+
+// CreateAgentWithKernel 创建智能体（支持内核选择）
+func CreateAgentWithKernel(agentID string, userID int, name, description, workspacePath, kernelType string) (*models.Agent, error) {
+	// 构建 config JSON
+	configJSON := fmt.Sprintf(`{"kernel_type": "%s"}`, kernelType)
+	
 	var agent models.Agent
+	var configStr sql.NullString
+	
 	err := DB.QueryRow(
-		`INSERT INTO agents (agent_id, user_id, name, description, workspace_path)
-		VALUES ($1, $2, $3, $4, $5)
-		RETURNING id, agent_id, user_id, name, description, workspace_path, created_at, updated_at`,
-		agentID, userID, name, description, workspacePath,
-	).Scan(&agent.ID, &agent.AgentID, &agent.UserID, &agent.Name, &agent.Description,
-		&agent.WorkspacePath, &agent.CreatedAt, &agent.UpdatedAt)
+		`INSERT INTO agents (agent_id, user_id, name, description, workspace_path, config)
+		VALUES ($1, $2, $3, $4, $5, $6::jsonb)
+		RETURNING id, agent_id, user_id, name, description, workspace_path, config, created_at, updated_at`,
+		agentID, userID, name, description, workspacePath, configJSON,
+	).Scan(&agent.ID, &agent.AgentID, &agent.UserID, &agent.Name,
+		&agent.Description, &agent.WorkspacePath, &configStr, &agent.CreatedAt, &agent.UpdatedAt)
 	
 	if err != nil {
 		return nil, err
 	}
+	
+	// 解析 config
+	if configStr.Valid {
+		agent.Config = configStr.String
+	}
+	
 	return &agent, nil
 }
 
 // ListAgents 列出智能体
 func ListAgents(userID int) ([]models.Agent, error) {
-	query := "SELECT id, agent_id, user_id, name, description, workspace_path, created_at, updated_at FROM agents"
+	query := "SELECT id, agent_id, user_id, name, description, workspace_path, config, created_at, updated_at FROM agents"
 	args := []interface{}{}
 	
 	if userID > 0 {
@@ -149,11 +165,19 @@ func ListAgents(userID int) ([]models.Agent, error) {
 	var agents []models.Agent
 	for rows.Next() {
 		var agent models.Agent
+		var configStr sql.NullString
+		
 		err := rows.Scan(&agent.ID, &agent.AgentID, &agent.UserID, &agent.Name,
-			&agent.Description, &agent.WorkspacePath, &agent.CreatedAt, &agent.UpdatedAt)
+			&agent.Description, &agent.WorkspacePath, &configStr, &agent.CreatedAt, &agent.UpdatedAt)
 		if err != nil {
 			continue
 		}
+		
+		// 解析 config
+		if configStr.Valid {
+			agent.Config = configStr.String
+		}
+		
 		agents = append(agents, agent)
 	}
 	

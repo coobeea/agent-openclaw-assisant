@@ -50,6 +50,9 @@ type ChatRequest struct {
 	// UserID is the identifier of the user sending the message
 	UserID string `json:"user_id,omitempty"`
 
+	// WorkspacePath is the agent's workspace directory path
+	WorkspacePath string `json:"workspace_path,omitempty"`
+
 	// Context contains additional metadata for the request
 	Context map[string]string `json:"context,omitempty"`
 
